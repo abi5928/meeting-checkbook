@@ -1,0 +1,554 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#4f7cff">
+<link rel="manifest" href="manifest.json">
+<title>만남 체크북</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#f3f6fb;color:#182235;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans KR",sans-serif}
+.app{max-width:560px;margin:auto;min-height:100vh;background:#fff;box-shadow:0 0 30px #00000012}
+header{padding:16px 18px 14px;background:#4f7cff;color:white;position:sticky;top:0;z-index:5}
+.title{font-size:21px;font-weight:800}.datebar{display:flex;align-items:center;gap:8px;margin-top:10px}
+.datebar input{flex:1;border:0;border-radius:10px;padding:9px;background:#fff;color:#182235;font-weight:700}
+main{padding:15px 15px 92px}.card{background:#fff;border:1px solid #e4e8f0;border-radius:16px;padding:14px;margin-bottom:12px}
+.summary{background:#f5f7ff;border-radius:18px;padding:15px;margin-bottom:12px}.summaryrow{display:flex;justify-content:space-between;align-items:end}
+.count{font-size:26px;font-weight:800}.muted{color:#718096;font-size:13px}.progress{height:8px;background:#e5eaf5;border-radius:99px;margin-top:11px;overflow:hidden}.bar{height:100%;background:#4f7cff;border-radius:99px;width:0}
+input[type=text],input[type=file],select{width:100%;padding:13px;border:1px solid #dbe2ef;border-radius:13px;font-size:16px;background:#fff}
+button{border:0;border-radius:11px;padding:10px 12px;font-weight:750;color:#182235;background:#edf1f7}
+.primary{background:#182235;color:#fff}.voice{width:100%;background:#182235;color:#fff;padding:14px;font-size:16px;margin:10px 0}
+.searchrow{display:flex;gap:7px}.searchrow input{flex:1}.mic{font-size:20px;padding:9px 13px;background:#eef5ff;color:#155eef}
+.list{margin-top:10px}.person{display:grid;grid-template-columns:32px 1fr auto;gap:8px;align-items:center;padding:12px 4px;border-bottom:1px solid #edf0f5}.person.delete-mode{grid-template-columns:32px 32px 1fr}.person.delete-mode .name{min-width:0}.person.delete-mode .actions{display:none}
+.num{color:#182235;font-size:14px;font-weight:800;text-align:right;min-width:30px;padding-right:2px}.name{font-weight:700}.birth{display:block;color:#8a95a8;font-size:12px;margin-top:3px}
+.actions{display:flex;gap:5px;align-items:center;flex-wrap:nowrap;justify-content:flex-end}.actions button,.actions select{flex:none}.actions select{max-width:86px}.status{min-width:62px}.compact{white-space:nowrap;min-width:auto}.memo{background:#f5f7ff;color:#40506b}.memo.has{background:#fff3cd;color:#7a5600}.off{background:#f0f2f6;color:#7a8495}.on{background:#dff7e8;color:#198754}.call{background:#edf8f1;color:#167044;padding:9px}
+.warn{background:#fff7e6;color:#946200;padding:10px;border-radius:10px;font-size:13px;margin:8px 0}.ok{background:#edf8f1;color:#167044;padding:10px;border-radius:10px;font-size:13px;margin:8px 0}
+nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:min(560px,100%);background:#fff;border-top:1px solid #e6eaf1;display:flex;padding:7px 3px calc(7px + env(safe-area-inset-bottom));z-index:6}
+nav button{flex:1;background:none;font-size:11px;padding:7px 2px;color:#6d7788}nav button.active{color:#4f7cff;font-weight:800}
+.modal{position:fixed;inset:0;background:#0008;display:none;align-items:flex-end;z-index:20}.sheet{background:#fff;width:min(560px,100%);margin:auto;border-radius:22px 22px 0 0;padding:20px}.result{padding:13px;border:1px solid #e2e7f0;border-radius:12px;margin:8px 0}.close{width:100%;margin-top:10px}.record{padding:12px 0;border-bottom:1px solid #edf0f5}.toast{position:fixed;left:50%;bottom:82px;transform:translateX(-50%);background:#182235;color:#fff;padding:10px 16px;border-radius:99px;display:none;z-index:30;white-space:nowrap}
+.small{font-size:12px;padding:7px 9px}.danger{background:#fff0f0;color:#b42318}
+</style>
+</head>
+<body>
+<div class="app">
+<header>
+ <div class="title">📋 만남 체크북</div>
+ <div class="datebar"><input id="datePicker" type="date"><span>날짜</span></div>
+</header>
+<main id="main"></main>
+<nav>
+ <button id="navNew" onclick="newTopic()">🆕<br>NEW</button>
+ <button id="navCheck" onclick="tab='check';render()">📋<br>체크</button>
+ <button id="navRecords" onclick="tab='records';render()">🗂<br>기록</button>
+ <button id="navManage" onclick="tab='manage';render()">⚙<br>관리</button>
+</nav>
+</div>
+<div class="modal" id="voiceModal"><div class="sheet">
+ <h2>🎤 음성 체크</h2><div id="voiceMsg">이름을 말씀하세요.</div><div id="voiceResults"></div>
+ <button class="close" onclick="closeVoice()">닫기</button>
+</div></div>
+<div class="modal" id="addModal"><div class="sheet">
+ <h2>＋ 대상자 추가</h2>
+ <input id="addName" type="text" placeholder="이름">
+ <input id="addBirth" type="text" placeholder="생년월일 (예: 1950-05-08)" style="margin-top:8px">
+ <input id="addPhone" type="text" placeholder="전화번호" style="margin-top:8px">
+ <input id="addAddress" type="text" placeholder="주소" style="margin-top:8px">
+ <button class="primary" style="width:100%;margin-top:10px" onclick="addPerson()">명단에 추가</button>
+ <button class="close" onclick="closeAdd()">취소</button>
+</div></div>
+<div class="modal" id="memoModal"><div class="sheet">
+ <h2>📝 메모</h2><div id="memoPerson" class="muted" style="margin-bottom:8px"></div>
+ <textarea id="memoText" rows="4" style="width:100%;padding:12px;border:1px solid #dbe2ef;border-radius:13px;font-size:16px;resize:vertical" placeholder="간단한 메모를 입력하세요."></textarea>
+ <button class="primary" style="width:100%;margin-top:10px" onclick="saveMemo()">저장</button>
+ <button class="close" onclick="closeMemo()">취소</button>
+</div></div>
+<div class="modal" id="specialModal"><div class="sheet">
+ <h2>체크 정보</h2><div id="specialPerson" class="muted" style="margin-bottom:8px"></div>
+ <select id="specialRelation"><option value="">체크하지 않음</option><option value="본인">본인</option><option value="가족">가족</option><option value="기타">기타</option></select>
+ <div style="display:flex;gap:8px;margin-top:8px"><select id="specialHour"><option value="">시</option></select><select id="specialMinute"><option value="">분</option></select></div>
+ <button class="primary" style="width:100%;margin-top:10px" onclick="saveSpecialModal()">저장</button>
+ <button class="close" onclick="closeSpecialModal()">취소</button>
+</div></div>
+<div class="modal" id="newModal"><div class="sheet">
+ <h2>🆕 새로운 체크북</h2>
+ <p class="muted">업무 주제를 선택하면 주제에 맞는 체크 방식으로 시작합니다.</p>
+ <label class="muted" style="display:block;margin-bottom:6px">구분</label>
+ <select id="newTopicType" onchange="updateNewTopicUI()"><option value="방문상담">방문상담</option><option value="물품수령">물품수령</option><option value="출석체크">출석체크</option><option value="안부확인">안부확인</option><option value="기타">기타</option></select>
+ <label class="muted" style="display:block;margin:10px 0 6px">제목</label>
+ <input id="newTitle" type="text" placeholder="이번 업무의 제목을 입력하세요 (선택)">
+ <input id="newFile" type="file" accept=".xlsm,.xlsx,.xls" style="margin-top:8px">
+ <button class="primary" style="width:100%;margin-top:8px" onclick="createNewTopic()">새 체크북 시작</button>
+ <button class="close" onclick="closeNew()">취소</button>
+</div></div>
+<div class="toast" id="toast"></div>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script>
+const KEY='welfare_checkbook_from_attendance_v1';
+let state=JSON.parse(localStorage.getItem(KEY)||'null')||{
+ people:[
+  {id:'1',name:'김창억',birth:'1949-05-01',phone:'',address:''},{id:'2',name:'박수직',birth:'1951-04-11',phone:'',address:''},
+  {id:'3',name:'조강하',birth:'1956-05-01',phone:'',address:''},{id:'4',name:'구조대',birth:'1948-07-05',phone:'',address:''},
+  {id:'5',name:'구조대',birth:'1950-05-08',phone:'',address:''},{id:'6',name:'한사방',birth:'1952-02-17',phone:'',address:''},
+  {id:'7',name:'고용대',birth:'1955-10-03',phone:'',address:''},{id:'8',name:'최수몽',birth:'1958-12-22',phone:'',address:''}
+ ],records:[],trash:[],title:'출석체크',topicType:'출석체크',date:new Date().toISOString().slice(0,10)
+};
+if(!Array.isArray(state.trash)) state.trash=[];
+let tab='check',query='',deleteMode=false,deleteSelected=new Set(),activeRecordId=null,memoPersonId=null,specialPersonId=null;
+
+function save(){localStorage.setItem(KEY,JSON.stringify(state))}
+function esc(s){return String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
+function nameNorm(s){return String(s||'').replace(/\s+/g,'').toLowerCase()}
+function phoneNorm(s){return String(s||'').replace(/[^\d+]/g,'')}
+function birthNorm(v){
+ if(v===null||v===undefined||v==='')return '';
+ if(v instanceof Date&&!isNaN(v))return v.getFullYear()+'-'+String(v.getMonth()+1).padStart(2,'0')+'-'+String(v.getDate()).padStart(2,'0');
+ let s=String(v).trim().replace(/\s/g,'');
+ let m=s.match(/^(\d{4})[-./](\d{1,2})[-./](\d{1,2})$/);if(m)return m[1]+'-'+m[2].padStart(2,'0')+'-'+m[3].padStart(2,'0');
+ if(/^\d{8}$/.test(s))return s.slice(0,4)+'-'+s.slice(4,6)+'-'+s.slice(6,8);
+ if(/^\d{6}$/.test(s)){let yy=+s.slice(0,2);return (yy<=25?2000+yy:1900+yy)+'-'+s.slice(2,4)+'-'+s.slice(4,6)}
+ let n=Number(s);if(isFinite(n)&&n>20000&&n<70000){let d=new Date(Date.UTC(1899,11,30)+n*86400000);return d.getUTCFullYear()+'-'+String(d.getUTCMonth()+1).padStart(2,'0')+'-'+String(d.getUTCDate()).padStart(2,'0')}
+ return s
+}
+function birth6(b){let m=String(b||'').match(/^(\d{4})-(\d{2})-(\d{2})$/);return m?m[1].slice(2)+m[2]+m[3]:b||''}
+function getRecord(create=true){
+ let r=activeRecordId ? state.records.find(x=>x.id===activeRecordId) : state.records.find(x=>x.date===state.date&&x.title===state.title);
+ if(!r&&create){
+  r={id:crypto.randomUUID(),date:state.date,title:state.title,topicType:state.topicType||'기타',checks:{},people:state.people.map(p=>({...p}))};
+  state.records.push(r);activeRecordId=r.id;
+ }
+ if(r){
+  state.date=r.date||state.date;
+  state.title=r.title||state.title||'기타';
+  state.topicType=r.topicType||inferTopicType(state.title);
+  // 기록에 명단이 있으면 반드시 그 명단을 현재 화면으로 복원한다.
+  // 구버전 기록에 명단이 없으면 현재 명단을 기록에 스냅샷으로 저장한다.
+  if(Array.isArray(r.people) && r.people.length){
+    state.people=r.people.map(p=>({...p}));
+  }else if(state.people.length){
+    r.people=state.people.map(p=>({...p}));
+  }
+ }
+ return r
+}
+function checkedSet(){let r=getRecord(false);return new Map(r?Object.keys(r.checks).filter(k=>r.checks[k]).map(k=>[k,r.checks[k]]):[])}
+function specialTopic(){return ['방문상담','물품수령','안부확인'].includes(state.topicType)}
+function parseCheck(v){
+ if(v && typeof v==='object') return {relation:v.relation||'',time:v.time||'',memo:v.memo||'',checked:v.checked!==false};
+ if(typeof v==='string' && ['본인','가족','기타'].includes(v)) return {relation:v,time:'',memo:'',checked:true};
+ if(v===true) return {relation:'',time:'',memo:'',checked:true};
+ return {relation:'',time:'',memo:'',checked:false};
+}
+function setSpecialCheck(id,relation,hour,minute){
+ let r=getRecord();
+ const time=(hour&&minute)?hour+':'+minute:'';
+ const old=parseCheck(r.checks[id]);
+ if(!relation){delete r.checks[id];}
+ else{r.checks[id]={relation,time,memo:old.memo||'',checked:true};}
+ r.people=state.people.map(p=>({...p}));
+ save();render();toast(relation?relation+(time?' · '+time:'')+'로 체크되었습니다.':'체크가 취소되었습니다.');
+}
+function updateSpecialTime(id){
+ const r=getRecord();
+ const info=parseCheck(r?.checks?.[id]);
+ if(!info.relation)return;
+ const h=document.getElementById('tmh_'+String(id)),m=document.getElementById('tmm_'+String(id));
+ const time=h?.value&&m?.value?h.value+':'+m.value:'';
+ r.checks[id]={relation:info.relation,time,memo:info.memo||'',checked:true};
+ r.people=state.people.map(p=>({...p}));
+ save();
+ toast(time?'만난 시간이 저장되었습니다.':'만난 시간이 해제되었습니다.');
+}
+function setVisitType(id,value){setSpecialCheck(id,value,'')}
+function toggle(id){
+ let r=getRecord(),s=checkedSet();
+ r.people=state.people.map(p=>({...p}));
+ if(s.has(String(id))){delete r.checks[id];toast('체크가 취소되었습니다.')}
+ else{r.checks[id]={checked:true,memo:''};toast('✓ 체크되었습니다.')}
+ query='';
+ save();
+ render();
+}
+function setNav(){['Check','Records','Manage'].forEach(x=>document.getElementById('nav'+x).classList.toggle('active',tab===x.toLowerCase()));document.getElementById('navNew').classList.remove('active')}
+function inferTopicType(title){const t=String(title||'');if(['방문상담','물품수령','출석체크','안부확인'].includes(t))return t;if(t==='출석')return '출석체크';return '기타'}
+function updateNewTopicUI(){const type=document.getElementById('newTopicType')?.value||'기타';const input=document.getElementById('newTitle');if(!input)return;input.placeholder=type==='기타'?'제목을 입력하세요 (선택)':'예: '+type+' 관련 업무 제목 (선택)'}
+function newTopic(){
+ activeRecordId=null;
+ document.getElementById('newTopicType').value='방문상담';
+ document.getElementById('newTitle').value='';
+ document.getElementById('newFile').value='';
+ updateNewTopicUI();
+ document.getElementById('newModal').style.display='flex';
+ document.getElementById('newTitle').focus();
+}
+function closeNew(){document.getElementById('newModal').style.display='none'}
+function createNewTopic(){
+ const topicType=document.getElementById('newTopicType').value;
+ const customTitle=document.getElementById('newTitle').value.trim();
+ const title=customTitle||topicType;
+ const f=document.getElementById('newFile').files[0];
+ if(!title){alert('구분 또는 제목을 확인하세요.');return}
+ if(!f){
+   state.people=[];
+   state.title=title;
+   state.topicType=topicType;
+   state.date=new Date().toISOString().slice(0,10);
+   query='';
+   deleteMode=false;
+   deleteSelected=new Set();
+   const nr={id:crypto.randomUUID(),date:state.date,title:state.title,topicType:state.topicType||'기타',checks:{},people:[]};
+   state.records.push(nr);
+   activeRecordId=nr.id;
+   save();
+   closeNew();
+   tab='check';
+   document.getElementById('datePicker').value=state.date;
+   render();
+   toast('새 체크북이 시작되었습니다 · 화면에서 명단을 추가하세요');
+   return;
+ }
+ const reader=new FileReader();
+ reader.onload=e=>{
+  try{
+   const wb=XLSX.read(e.target.result,{type:'array',cellDates:true});
+   const ws=wb.Sheets[wb.SheetNames[0]];
+   const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:'',raw:true});
+   let h=rows.findIndex(row=>row.some(v=>['이름','성명','대상자명','대상자'].includes(String(v).trim())));
+   if(h<0)h=5;
+   const heads=rows[h].map(v=>String(v).trim());
+   let ni=heads.findIndex(v=>['이름','성명','대상자명','대상자'].includes(v));if(ni<0)ni=1;
+   let bi=heads.findIndex(v=>v.includes('생년'));if(bi<0)bi=2;
+   let pi=heads.findIndex(v=>v.includes('전화')||v.includes('휴대'));if(pi<0)pi=3;
+   const people=[];
+   rows.slice(h+1).forEach(row=>{
+    const name=String(row[ni]??'').trim();if(!name)return;
+    let ai=heads.findIndex(v=>v.includes('주소')||v.includes('거주지')||v.includes('도로명')); if(ai<0)ai=4;
+    people.push({id:crypto.randomUUID(),name,birth:birthNorm(row[bi]),phone:String(row[pi]??'').trim(),address:String(row[ai]??'').trim()});
+   });
+   if(!people.length){alert('Excel에서 대상자 명단을 찾지 못했습니다.');return}
+   state.people=people;
+   state.title=title;
+   state.topicType=topicType;
+   state.date=new Date().toISOString().slice(0,10);
+   query='';
+   const nr={id:crypto.randomUUID(),date:state.date,title:state.title,topicType:state.topicType||'기타',checks:{},people:people.map(p=>({...p}))};
+   state.records.push(nr);
+   activeRecordId=nr.id;
+   save();
+   closeNew();
+   tab='check';
+   document.getElementById('datePicker').value=state.date;
+   render();
+   toast('새 체크북이 시작되었습니다 · '+people.length+'명');
+  }catch(err){alert('Excel 읽기 오류: '+err.message)}
+ };
+ reader.readAsArrayBuffer(f);
+}
+function render(){setNav();if(tab==='check')renderCheck();else if(tab==='records')renderRecords();else renderManage()}
+document.getElementById('datePicker').value=state.date;document.getElementById('datePicker').onchange=e=>{state.date=e.target.value;if(activeRecordId){const r=state.records.find(x=>x.id===activeRecordId);if(r)r.date=state.date;}save();render()};
+
+function renderCheck(){
+ query='';
+ const r=getRecord(false),s=checkedSet(),list=state.people.filter(p=>!query||nameNorm(p.name).includes(nameNorm(query))||birth6(p.birth).includes(query.replace(/-/g,'')));
+ const pct=state.people.length?Math.round(s.size/state.people.length*100):0;
+ main.innerHTML=`<section class="summary"><div class="summaryrow"><div><div class="muted">${esc(state.title)} · ${esc(state.date)}</div><div class="count">${s.size} / ${state.people.length}명</div></div><div class="muted">${pct}%</div></div><div class="progress"><div class="bar" style="width:${pct}%"></div></div></section>
+ <div class="card">${activeRecordId?'<div class="ok" style="margin-bottom:10px">✏️ 기존 기록을 수정 중입니다. 체크 상태를 변경하면 이 기록에 저장됩니다.</div>':''}<div class="ok" style="margin-bottom:8px">구분: <b>${esc(state.topicType)}</b><br><span class="muted">제목: ${esc(state.title)}</span></div>
+ <div class="searchrow" style="margin-top:8px"><input id="search" type="search" value="" placeholder="🔍 대상자 이름 검색" autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false" name="person_search"><button class="mic" id="mic">🎙️</button></div>
+ <div class="muted" style="margin-top:7px">이름을 검색하거나 🎙️ 음성으로 말하면 대상자를 찾습니다.</div><div id="searchList" class="list"></div></div>
+ <div class="card" id="peopleTools"></div>`;
+
+ document.getElementById('search').oninput=e=>{query=e.target.value;drawSearch()};
+ document.getElementById('mic').onclick=voiceInput;drawSearch();drawPeopleTools()
+}
+function drawSearch(){
+ const box=document.getElementById('searchList');if(!box)return;
+ const list=state.people.filter(p=>!query||nameNorm(p.name).includes(nameNorm(query))||birth6(p.birth).includes(query.replace(/-/g,'')));
+ if(!state.people.length){box.innerHTML='<div class="warn">명단이 없습니다. 아래의 추가 또는 Excel 명단 불러오기를 이용하세요.</div>';return}
+ if(!list.length){box.innerHTML='<div class="warn">검색 결과가 없습니다.</div>';return}
+ const s=checkedSet();
+ box.innerHTML=list.map((p)=>{
+   const idx=list.indexOf(p)+1;
+   const num=`<div class="num">${idx}.</div>`;
+   const del=deleteMode?`<input type="checkbox" ${deleteSelected.has(String(p.id))?'checked':''} onchange="setDelete('${String(p.id).replace(/'/g,"\\'")}',this.checked)" style="width:22px;height:22px">`:'';
+   const key=String(p.id).replace(/'/g,"\\'");
+   let control='';
+   if(!deleteMode){
+     const info=parseCheck(s.get(String(p.id)));
+     const hasCheck=s.has(String(p.id));
+     if(specialTopic()){
+       const label=info.relation ? esc(info.relation)+(info.time?' · '+esc(info.time):'') : '체크';
+       control=`<button class="status compact ${hasCheck?'on':'off'}" onclick="openSpecialModal('${key}')">${hasCheck?'✓ ':''}${label}</button>`;
+     }else{
+       control=`<button class="status ${hasCheck?'on':'off'}" onclick="toggle('${key}')">${hasCheck?'✓ 체크':'체크'}</button>`;
+     }
+     const memoBtn=`<button class="small memo ${info.memo?'has':''}" onclick="openMemo('${key}')">${info.memo?'📝 메모✓':'메모'}</button>`;
+     control += memoBtn;
+   }
+   return `<div class="person ${deleteMode?'delete-mode':''}">${num}${del}<div class="name">${esc(p.name)}<span class="birth">${esc(birth6(p.birth))}${p.phone?' · '+esc(p.phone):''}${p.address?' · '+esc(p.address):''}</span></div><div class="actions">${deleteMode?'':(p.phone?`<button class="call" onclick="callPerson('${esc(phoneNorm(p.phone))}')">📞</button>`:'')}${control}</div></div>`;
+ }).join('')
+}
+function drawPeopleTools(){
+ const box=document.getElementById('peopleTools');if(!box)return;
+ if(deleteMode){
+   const total=state.people.length, selected=deleteSelected.size;
+   box.innerHTML=`<b>명단 삭제</b><p class="muted">삭제할 사람을 여러 명 선택할 수 있습니다. 삭제해도 기존 기록은 남습니다.</p><div class="actions" style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><button onclick="selectAllForDelete()">${selected===total&&total?'☑ 모두 해제':'☐ 모두 선택'}</button><button class="danger" onclick="deleteSelectedPeople()">선택 ${selected}명 삭제</button></div><button style="width:100%;margin-top:8px" onclick="cancelDeleteMode()">취소</button>`;
+ }else{
+   box.innerHTML=`<b>명단 관리</b><p class="muted">화면에서 한 사람씩 추가하거나 여러 명을 선택해 삭제할 수 있습니다.</p><div class="actions" style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><button class="primary" onclick="openAddPerson()">＋ 사람 추가</button><button class="danger" onclick="startDeleteMode()">🗑 여러 명 삭제</button></div><input id="excelFile" type="file" accept=".xlsm,.xlsx,.xls" style="margin-top:10px"><button style="width:100%;margin-top:8px" onclick="importExcel()">📥 Excel 명단 불러오기</button>`;
+ }
+}
+function startDeleteMode(){deleteMode=true;deleteSelected=new Set();render();}
+function cancelDeleteMode(){deleteMode=false;deleteSelected=new Set();render();}
+function selectAllForDelete(){
+ if(!state.people.length)return;
+ if(deleteSelected.size===state.people.length) deleteSelected=new Set();
+ else deleteSelected=new Set(state.people.map(p=>String(p.id)));
+ drawPeopleTools();
+ drawPeople();
+}
+function setDelete(id,checked){if(checked)deleteSelected.add(String(id));else deleteSelected.delete(String(id));drawPeopleTools();drawSearch()}
+function deleteSelectedPeople(){
+ if(!deleteSelected.size){alert('삭제할 사람을 선택하세요.');return}
+ const ids=new Set([...deleteSelected].map(String));
+ if(!confirm(`선택한 ${ids.size}명을 현재 명단에서 삭제할까요?\n이미 저장된 과거 기록은 그대로 보존됩니다.`))return;
+ // 현재 명단에서 실제 삭제
+ state.people=state.people.filter(p=>!ids.has(String(p.id)));
+ // 현재 편집 중인 기록에서도 삭제한 사람 제거
+ const current=activeRecordId
+   ? state.records.find(x=>x.id===activeRecordId)
+   : state.records.find(x=>x.date===state.date && x.title===state.title);
+ if(current){
+   current.people=state.people.map(p=>({...p}));
+   current.checks=current.checks||{};
+   ids.forEach(id=>delete current.checks[id]);
+ }
+ deleteMode=false;
+ deleteSelected=new Set();
+ save();
+ render();
+ toast(`${ids.size}명이 현재 명단에서 삭제되었습니다.`);
+}
+
+function openAddPerson(){document.getElementById('addName').value='';document.getElementById('addBirth').value='';document.getElementById('addPhone').value='';document.getElementById('addAddress').value='';document.getElementById('addModal').style.display='flex';document.getElementById('addName').focus()}
+function closeAdd(){document.getElementById('addModal').style.display='none'}
+function addPerson(){
+ const name=document.getElementById('addName').value.trim();if(!name){alert('이름을 입력하세요.');return}
+ const person={id:crypto.randomUUID(),name,birth:birthNorm(document.getElementById('addBirth').value),phone:document.getElementById('addPhone').value.trim(),address:document.getElementById('addAddress').value.trim()};
+ let r=activeRecordId?state.records.find(x=>x.id===activeRecordId):null;
+ if(!r){
+   r=getRecord(true);
+ }
+ state.people.push(person);
+ r.people=state.people.map(p=>({...p}));
+ save();closeAdd();render();toast(name+'님을 명단에 추가했습니다.');
+}
+function openMemo(id){
+ memoPersonId=String(id);
+ const p=state.people.find(x=>String(x.id)===memoPersonId);
+ const r=getRecord(false);
+ const info=parseCheck(r?.checks?.[memoPersonId]);
+ document.getElementById('memoPerson').textContent=p?p.name:'';
+ document.getElementById('memoText').value=info.memo||'';
+ document.getElementById('memoModal').style.display='flex';
+ document.getElementById('memoText').focus();
+}
+function closeMemo(){document.getElementById('memoModal').style.display='none';memoPersonId=null}
+function saveMemo(){
+ if(!memoPersonId)return;
+ const r=getRecord(true);
+ const old=parseCheck(r.checks[memoPersonId]);
+ const memo=document.getElementById('memoText').value.trim();
+ if(!old.checked && !memo){delete r.checks[memoPersonId];}
+ else if(specialTopic() && old.relation){r.checks[memoPersonId]={relation:old.relation,time:old.time||'',memo,checked:true};}
+ else{r.checks[memoPersonId]={checked:old.checked||!!memo,memo};}
+ r.people=state.people.map(p=>({...p})); save(); closeMemo(); render(); toast(memo?'메모를 저장했습니다.':'메모를 삭제했습니다.');
+}
+function openSpecialModal(id){
+ specialPersonId=String(id);
+ const p=state.people.find(x=>String(x.id)===specialPersonId), r=getRecord(false), info=parseCheck(r?.checks?.[specialPersonId]);
+ document.getElementById('specialPerson').textContent=p?p.name:'';
+ document.getElementById('specialRelation').value=info.relation||'';
+ const h=document.getElementById('specialHour'),m=document.getElementById('specialMinute');
+ h.innerHTML='<option value="">시</option>'+Array.from({length:24},(_,i)=>{const v=String(i).padStart(2,'0');return `<option value="${v}" ${info.time?.slice(0,2)===v?'selected':''}>${v}시</option>`}).join('');
+ m.innerHTML='<option value="">분</option>'+Array.from({length:12},(_,i)=>{const v=String(i*5).padStart(2,'0');return `<option value="${v}" ${info.time?.slice(3)===v?'selected':''}>${v}분</option>`}).join('');
+ document.getElementById('specialModal').style.display='flex';
+}
+function closeSpecialModal(){document.getElementById('specialModal').style.display='none';specialPersonId=null}
+function saveSpecialModal(){
+ if(!specialPersonId)return;
+ const relation=document.getElementById('specialRelation').value;
+ const h=document.getElementById('specialHour').value,m=document.getElementById('specialMinute').value;
+ setSpecialCheck(specialPersonId,relation,h,m);
+ closeSpecialModal();
+}
+function voiceInput(){
+ const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+ document.getElementById('voiceModal').style.display='flex';
+ const msg=document.getElementById('voiceMsg'),res=document.getElementById('voiceResults');res.innerHTML='';
+ if(!SR){msg.textContent='이 브라우저는 음성인식을 지원하지 않습니다. Chrome 또는 Edge에서 사용하세요.';return}
+ msg.textContent='🎙️ 듣고 있습니다. 이름을 말씀하세요.';
+ const rec=new SR();rec.lang='ko-KR';rec.interimResults=false;rec.continuous=false;rec.maxAlternatives=3;
+ rec.onresult=e=>{
+   const spoken=e.results[0][0].transcript.trim();query=spoken;document.getElementById('search').value=spoken;
+   const exact=state.people.filter(p=>nameNorm(p.name)===nameNorm(spoken));
+   const matches=exact.length?exact:state.people.filter(p=>nameNorm(spoken).includes(nameNorm(p.name))||nameNorm(p.name).includes(nameNorm(spoken)));
+   msg.textContent='인식: '+spoken;
+   if(matches.length===1){toggle(matches[0].id);res.innerHTML=`<div class="ok">✓ ${esc(matches[0].name)} · ${esc(birth6(matches[0].birth))} 체크 완료</div>`;}
+   else if(matches.length){res.innerHTML='<div class="warn">동명이인 또는 유사한 이름입니다. 생년월일을 확인하세요.</div>'+matches.map(p=>`<div class="result" onclick="toggle('${String(p.id).replace(/'/g,"\\'")}');closeVoice()"><b>${esc(p.name)}</b><br><span class="muted">${esc(birth6(p.birth))}${p.phone?' · '+esc(p.phone):''}${p.address?' · '+esc(p.address):''}</span></div>`).join('')}
+   else res.innerHTML='<div class="warn">일치하는 대상자가 없습니다. 검색 결과를 확인하세요.</div>';
+   drawSearch()
+ };
+ rec.onerror=e=>msg.textContent='음성인식 오류: '+(e.error||'다시 시도해주세요.');rec.start()
+}
+function closeVoice(){document.getElementById('voiceModal').style.display='none';render()}
+
+function importExcel(){
+ const f=document.getElementById('excelFile').files[0];if(!f){alert('Excel 파일을 선택하세요.');return}
+ const reader=new FileReader();
+ reader.onload=e=>{
+  try{
+   const wb=XLSX.read(e.target.result,{type:'array',cellDates:true});
+   const ws=wb.Sheets[wb.SheetNames[0]];
+   const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:'',raw:true});
+   let h=rows.findIndex(row=>row.some(v=>['이름','성명','대상자명','대상자'].includes(String(v).trim())));if(h<0)h=5;
+   const heads=rows[h].map(v=>String(v).trim());
+   let ni=heads.findIndex(v=>['이름','성명','대상자명','대상자'].includes(v));if(ni<0)ni=1;
+   let bi=heads.findIndex(v=>v.includes('생년'));if(bi<0)bi=2;
+   let pi=heads.findIndex(v=>v.includes('전화')||v.includes('휴대'));if(pi<0)pi=3;
+   let ai=heads.findIndex(v=>v.includes('주소')||v.includes('거주지')||v.includes('도로명'));if(ai<0)ai=4;
+   const people=[];rows.slice(h+1).forEach(row=>{const name=String(row[ni]??'').trim();if(!name)return;people.push({id:crypto.randomUUID(),name,birth:birthNorm(row[bi]),phone:String(row[pi]??'').trim(),address:String(row[ai]??'').trim()})});
+   if(!people.length){alert('이름 열을 찾지 못했거나 명단이 없습니다.');return}
+   state.people=people;
+   const r=activeRecordId?state.records.find(x=>x.id===activeRecordId):null;
+   if(r) r.people=people.map(p=>({...p}));
+   save();query='';deleteMode=false;deleteSelected=new Set();tab='check';render();toast(people.length+'명 명단을 불러왔습니다.')
+  }catch(err){alert('Excel 읽기 오류: '+err.message)}
+ };reader.readAsArrayBuffer(f)
+}
+
+function renderRecords(){
+ main.innerHTML='<div class="card"><b>기록</b><p class="muted">날짜와 체크 항목별로 저장됩니다. 기록을 삭제해도 명단은 삭제되지 않습니다.</p><div id="records"></div></div>';
+ const box=document.getElementById('records');
+ if(!state.records.length){box.innerHTML+='<div class="muted">저장된 기록이 없습니다.</div>';return}
+ state.records.slice().reverse().forEach(r=>{
+  const n=Object.values(r.checks||{}).filter(Boolean).length;
+  const total=Array.isArray(r.people)&&r.people.length ? r.people.length : state.people.length;
+  const d=document.createElement('div');d.className='record';
+  d.innerHTML=`<b>${esc(r.title)}</b><div class="muted">구분: ${esc(r.topicType||inferTopicType(r.title))} · ${esc(r.date)} · ${n}명/${total}명 체크</div><div class="actions" style="margin-top:8px"><button class="small">열기</button><button class="small">📥 Excel</button><button class="small danger">🗑 삭제</button></div>`;
+  const b=d.querySelectorAll('button');
+  b[0].onclick=()=>openRecord(r);
+  b[1].onclick=()=>exportExcel(r);
+  b[2].onclick=()=>{
+    if(!confirm('이 기록을 휴지통으로 이동할까요?\n기록은 휴지통에서 복원할 수 있습니다.'))return;
+    const idx=state.records.findIndex(x=>x.id===r.id);
+    if(idx<0)return;
+    const moved=JSON.parse(JSON.stringify(state.records[idx]));
+    moved.deletedAt=new Date().toISOString();
+    state.trash.push(moved);
+    state.records.splice(idx,1);
+    if(activeRecordId===r.id)activeRecordId=null;
+    save();render();toast('기록을 휴지통으로 이동했습니다.');
+  };
+  box.appendChild(d)
+ })
+}
+function openRecord(r){
+ const target=state.records.find(x=>x.id===r.id);
+ if(!target){alert('이 기록을 찾을 수 없습니다.');return}
+ activeRecordId=target.id;
+ state.title=target.title||'기타';
+ state.topicType=target.topicType||inferTopicType(state.title);
+ state.date=target.date||new Date().toISOString().slice(0,10);
+ if(Array.isArray(target.people) && target.people.length){
+   state.people=target.people.map(p=>({...p}));
+ }else if(state.people.length){
+   target.people=state.people.map(p=>({...p}));
+ }else{
+   // 명단이 전혀 없는 구버전 기록은 기록을 열 수는 있지만
+   // 현재 화면에서 복원할 명단이 없으므로 안내한다.
+   target.people=[];
+ }
+ query='';
+ deleteMode=false;
+ deleteSelected=new Set();
+ save();
+ const dp=document.getElementById('datePicker');if(dp)dp.value=state.date;
+ tab='check';
+ render();
+ toast('기록을 열었습니다. 수정 후 체크하면 저장됩니다.');
+}
+async function exportExcel(r){
+ const rows=[['연번','이름','생년월일','전화번호','주소',r.title+' ('+r.date+')']];
+ const people=r.people||state.people;
+ people.forEach((p,i)=>{
+  const cv=r.checks[p.id];
+  const info=parseCheck(cv);
+  let value='';
+  if(cv===true)value='O';
+  else if(typeof cv==='string')value=cv;
+  else if(cv && typeof cv==='object')value=info.relation+(info.time?' · '+info.time:'');
+  rows.push([i+1,p.name,p.birth||'',p.phone||'',p.address||'',value]);
+});
+ const ws=XLSX.utils.aoa_to_sheet(rows),wb=XLSX.utils.book_new();
+ XLSX.utils.book_append_sheet(wb,ws,'기록');
+ const filename=(r.title+'_'+r.date).replace(/[\\/:*?"<>|]/g,'_')+'.xlsx';
+ const data=XLSX.write(wb,{bookType:'xlsx',type:'array'});
+ const blob=new Blob([data],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+ const file=new File([blob],filename,{type:blob.type});
+
+ // 모바일에서는 생성한 Excel 파일을 운영체제 공유창으로 전달
+ if(navigator.share && (!navigator.canShare || navigator.canShare({files:[file]}))){
+   try{
+     await navigator.share({title:filename,text:'복지 체크북 기록',files:[file]});
+     return;
+   }catch(err){
+     if(err && err.name==='AbortError')return;
+   }
+ }
+ // 공유 기능을 지원하지 않는 브라우저는 다운로드로 대체
+ const url=URL.createObjectURL(blob);
+ const a=document.createElement('a');a.href=url;a.download=filename;document.body.appendChild(a);a.click();a.remove();
+ setTimeout(()=>URL.revokeObjectURL(url),1000);
+}
+function renderManage(){
+ const trash=Array.isArray(state.trash)?state.trash:[];
+ let trashHtml='';
+ if(!trash.length){
+   trashHtml='<div class="muted">휴지통이 비어 있습니다.</div>';
+ }else{
+   trashHtml=trash.slice().reverse().map(r=>{
+     const n=Object.values(r.checks||{}).filter(Boolean).length;
+     const total=Array.isArray(r.people)?r.people.length:0;
+     const deleted=r.deletedAt?new Date(r.deletedAt).toLocaleString('ko-KR',{year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}):'';
+     return `<div class="record"><b>${esc(r.title)}</b><div class="muted">구분: ${esc(r.topicType||inferTopicType(r.title))} · ${esc(r.date)} · ${n}명/${total}명 체크${deleted?' · 삭제 '+esc(deleted):''}</div><div class="actions" style="margin-top:8px"><button class="small" onclick="restoreTrash('${String(r.id).replace(/'/g,"\\'")}')">↩ 복원</button><button class="small danger" onclick="permanentDeleteTrash('${String(r.id).replace(/'/g,"\\'")}')">영구 삭제</button></div></div>`;
+   }).join('');
+ }
+ main.innerHTML=`<div class="card"><b>관리</b><p class="muted">현재 기기의 브라우저에 명단과 기록이 저장됩니다.</p><button class="danger" onclick="resetAll()">전체 데이터 초기화</button></div>
+ <div class="card"><b>🗑️ 기록 휴지통</b><p class="muted">삭제한 기록은 휴지통으로 이동하며, 직접 영구 삭제하기 전까지 보관됩니다.</p><div id="trashList">${trashHtml}</div>${trash.length?'<button style="width:100%;margin-top:10px" onclick="emptyTrash()">휴지통 비우기</button>':''}</div>
+ <div class="card"><b>사용 순서</b><p class="muted">① 체크 항목 입력 → ② 이름 검색 또는 🎙️ 음성 → ③ 체크 → ④ 필요하면 아래에서 대상자 추가·삭제 → ⑤ 기록에서 Excel 저장</p></div>`;
+}
+function restoreTrash(id){
+ const idx=state.trash.findIndex(x=>String(x.id)===String(id));
+ if(idx<0){alert('휴지통에서 기록을 찾을 수 없습니다.');return}
+ const r=JSON.parse(JSON.stringify(state.trash[idx]));
+ delete r.deletedAt;
+ if(state.records.some(x=>String(x.id)===String(r.id))){r.id=crypto.randomUUID()}
+ state.records.push(r);
+ state.trash.splice(idx,1);
+ save();render();toast('기록을 복원했습니다.');
+}
+function permanentDeleteTrash(id){
+ const idx=state.trash.findIndex(x=>String(x.id)===String(id));
+ if(idx<0)return;
+ if(!confirm('이 기록을 영구적으로 삭제할까요?\n영구 삭제 후에는 복원할 수 없습니다.'))return;
+ state.trash.splice(idx,1);
+ save();render();toast('기록을 영구 삭제했습니다.');
+}
+function emptyTrash(){
+ if(!state.trash.length)return;
+ if(!confirm(`휴지통의 ${state.trash.length}개 기록을 모두 영구 삭제할까요?\n삭제 후에는 복원할 수 없습니다.`))return;
+ state.trash=[];save();render();toast('휴지통을 비웠습니다.');
+}
+function resetAll(){if(confirm('모든 명단과 기록을 삭제할까요?')){localStorage.removeItem(KEY);location.reload()}}
+function toast(t){const e=document.getElementById('toast');e.textContent=t;e.style.display='block';clearTimeout(window.toastTimer);window.toastTimer=setTimeout(()=>e.style.display='none',1500)}
+render();
+</script>
+</body></html>
