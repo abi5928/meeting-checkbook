@@ -18,7 +18,7 @@ main{padding:15px 15px 92px}.card{background:#fff;border:1px solid #e4e8f0;borde
 input[type=text],input[type=file],select{width:100%;padding:13px;border:1px solid #dbe2ef;border-radius:13px;font-size:16px;background:#fff}
 button{border:0;border-radius:11px;padding:10px 12px;font-weight:750;color:#182235;background:#edf1f7}
 .primary{background:#182235;color:#fff}.voice{width:100%;background:#182235;color:#fff;padding:14px;font-size:16px;margin:10px 0}
-.searchrow{display:flex;gap:7px}.searchrow input{flex:1}.mic{font-size:20px;padding:9px 13px;background:#eef5ff;color:#155eef}
+.iosVoiceGuide{background:#f5f8ff;border:1px solid #dbe7ff;border-radius:13px;padding:12px;line-height:1.6;text-align:center;margin-bottom:8px}.searchrow{display:flex;gap:7px}.searchrow input{flex:1}.mic{font-size:20px;padding:9px 13px;background:#eef5ff;color:#155eef}
 .list{margin-top:10px}.person{display:grid;grid-template-columns:32px 1fr auto;gap:8px;align-items:center;padding:12px 4px;border-bottom:1px solid #edf0f5}.person.delete-mode{grid-template-columns:32px 32px 1fr}.person.delete-mode .name{min-width:0}.person.delete-mode .actions{display:none}
 .num{color:#182235;font-size:14px;font-weight:800;text-align:right;min-width:30px;padding-right:2px}.name{font-weight:700}.birth{display:block;color:#8a95a8;font-size:12px;margin-top:3px}
 .actions{display:flex;gap:5px;align-items:center;flex-wrap:nowrap;justify-content:flex-end}.actions button,.actions select{flex:none}.actions select{max-width:86px}.status{min-width:62px}.compact{white-space:nowrap;min-width:auto}.memo{background:#f5f7ff;color:#40506b}.memo.has{background:#fff3cd;color:#7a5600}.off{background:#f0f2f6;color:#7a8495}.on{background:#dff7e8;color:#198754}.call{background:#edf8f1;color:#167044;padding:9px}
@@ -379,58 +379,82 @@ function saveSpecialModal(){
  setSpecialCheck(specialPersonId,relation,h,m);
  closeSpecialModal();
 }
-let activeVoiceRec=null, voiceListening=false, voiceRestartCount=0, voiceGotResult=false;
+let activeVoiceRec=null, voiceListening=false, voiceRestartCount=0, voiceGotResult=false, voiceFallbackTimer=null;
+function isIOSDevice(){
+ return /iPhone|iPad|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+}
 function getSpeechRecognitionCtor(){
- const isIOS=/iPhone|iPad|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
- // iOS Safari에서는 표준 이름보다 webkitSpeechRecognition을 우선 사용합니다.
- if(isIOS) return window.webkitSpeechRecognition||window.SpeechRecognition||null;
+ const isIOS=isIOSDevice();
+ // PC/Android에서는 기존 웹 음성인식을 유지합니다. iPhone은 시스템 받아쓰기 입력을 사용합니다.
+ if(isIOS) return null;
  return window.SpeechRecognition||window.webkitSpeechRecognition||null;
 }
 function voiceInput(){
- const SR=getSpeechRecognitionCtor();
+ const isIOS=isIOSDevice();
  document.getElementById('voiceModal').style.display='flex';
- const msg=document.getElementById('voiceMsg'),res=document.getElementById('voiceResults');res.innerHTML='';
- voiceListening=true; voiceRestartCount=0; voiceGotResult=false; activeVoiceRec=null;
- const isIOS=/iPhone|iPad|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
- const isHomeScreenApp=navigator.standalone===true||window.matchMedia('(display-mode: standalone)').matches;
- if(isIOS&&isHomeScreenApp){
-   msg.textContent='iPhone 홈 화면 앱에서는 음성인식이 제한될 수 있습니다.';
-   res.innerHTML='<div class="warn">iPhone에서는 홈 화면 앱보다 Safari에서 이 사이트를 직접 여는 것이 안전합니다.</div>'+voiceFallbackHtml();
-   voiceListening=false; return;
+ const msg=document.getElementById('voiceMsg'),res=document.getElementById('voiceResults');
+ res.innerHTML=''; voiceListening=true; voiceRestartCount=0; voiceGotResult=false; activeVoiceRec=null;
+
+ // iPhone/iPad Safari 및 홈 화면 앱에서는 Web Speech API를 호출하지 않습니다.
+ // 앱의 🎙️ 버튼으로 이름 입력창을 열고, iOS 키보드의 받아쓰기 🎤을 사용하도록 합니다.
+ if(isIOS){
+   showIOSVoiceFallback(msg,res);
+   return;
  }
+ const SR=getSpeechRecognitionCtor();
  if(!SR){
    msg.textContent='이 브라우저에서는 웹앱 음성인식을 사용할 수 없습니다.';
-   res.innerHTML=voiceFallbackHtml(); voiceListening=false; return;
+   res.innerHTML=voiceFallbackHtml();
+   focusVoiceFallback();
+   voiceListening=false; return;
  }
  startVoiceRecognition(SR,msg,res);
+}
+function showIOSVoiceFallback(msg,res){
+ msg.textContent='🎙️ 이름을 말해 주세요.';
+ res.innerHTML='<div class="iosVoiceGuide"><b>이름 입력창을 눌러 키보드가 나타나면</b><br>키보드의 🎤을 눌러 이름을 말씀하세요.<br><span class="muted">입력된 이름은 자동으로 대상자를 찾습니다.</span></div>'+voiceFallbackHtml(true);
+ voiceListening=false;
+ setTimeout(focusVoiceFallback,120);
+}
+function focusVoiceFallback(){
+ const input=document.getElementById('voiceFallback');
+ if(!input)return;
+ if(!input.dataset.voiceBound){setupVoiceFallbackAutoCheck();input.dataset.voiceBound='1'}
+ try{input.focus();input.click();input.setSelectionRange(input.value.length,input.value.length)}catch(_){input.focus()}
+}
+function setupVoiceFallbackAutoCheck(){
+ const input=document.getElementById('voiceFallback');
+ if(!input)return;
+ const check=()=>{
+   clearTimeout(voiceFallbackTimer);
+   const value=input.value.trim();
+   if(!value)return;
+   voiceFallbackTimer=setTimeout(()=>{
+     if(document.getElementById('voiceFallback')?.value.trim()===value) submitVoiceFallback();
+   },650);
+ };
+ input.addEventListener('input',check);
+ input.addEventListener('change',check);
+ input.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();submitVoiceFallback()}});
 }
 function startVoiceRecognition(SR,msg,res){
  if(!voiceListening)return;
  try{activeVoiceRec?.abort()}catch(_){ }
  const rec=new SR(); activeVoiceRec=rec;
- const isIOS=/iPhone|iPad|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+ const isIOS=isIOSDevice();
  rec.lang='ko-KR';
- // iOS Safari에서는 한 번의 발화를 안정적으로 받는 방식으로 시작합니다.
  rec.interimResults=true;
  rec.continuous=!isIOS;
  rec.maxAlternatives=3;
  let gotFinal=false, endedNormally=false;
- rec.onstart=()=>{
-   msg.textContent='🎙️ 듣고 있습니다. 이름을 말씀하세요.';
-   res.innerHTML='<div class="muted">지금 이름을 말씀하세요. 인식이 끝나면 자동으로 검색합니다.</div>';
- };
- rec.onaudiostart=()=>{
-   msg.textContent='🎙️ 듣고 있습니다. 이름을 말씀하세요.';
- };
- rec.onsoundstart=()=>{
-   msg.textContent='🎙️ 듣고 있습니다… 이름을 말씀하세요.';
- };
+ rec.onstart=()=>{msg.textContent='🎙️ 듣고 있습니다. 이름을 말씀하세요.';res.innerHTML='<div class="muted">지금 이름을 말씀하세요. 인식이 끝나면 자동으로 검색합니다.</div>';};
+ rec.onaudiostart=()=>{msg.textContent='🎙️ 듣고 있습니다. 이름을 말씀하세요.';};
+ rec.onsoundstart=()=>{msg.textContent='🎙️ 듣고 있습니다… 이름을 말씀하세요.';};
  rec.onresult=e=>{
    let interim='', finalText='';
    for(let i=e.resultIndex;i<e.results.length;i++){
      const t=e.results[i][0].transcript.trim();
-     if(e.results[i].isFinal) finalText+=t+' ';
-     else interim+=t+' ';
+     if(e.results[i].isFinal) finalText+=t+' '; else interim+=t+' ';
    }
    if(interim.trim()) msg.textContent='🎙️ 듣는 중: '+interim.trim();
    if(finalText.trim()){
@@ -441,56 +465,59 @@ function startVoiceRecognition(SR,msg,res){
  };
  rec.onerror=e=>{
    const code=e.error||'unknown';
-   // iOS에서 not-allowed/service-not-allowed는 코드로 강제 우회할 수 없습니다.
-   // 자동 재시작을 하지 않고 원인을 명확히 보여줍니다.
    if(code==='not-allowed'||code==='service-not-allowed'){
      voiceListening=false;
-     msg.textContent='iPhone 음성인식 서비스를 사용할 수 없습니다.';
-     const ios=/iPhone|iPad|iPod/.test(navigator.userAgent);
-     res.innerHTML='<div class="warn">오류 코드: <b>'+esc(code)+'</b><br>'+
-       (ios
-        ? 'Safari가 음성인식 서비스를 거부했습니다. <b>설정 → Siri(또는 Apple Intelligence 및 Siri) → Siri 및 받아쓰기</b>가 켜져 있는지 확인한 뒤 Safari를 완전히 종료하고 다시 열어 주세요.'
-        : '브라우저의 음성인식 권한 또는 음성인식 서비스를 확인해 주세요.')+
-       '</div><button class="primary" style="width:100%;margin-top:8px" onclick="retryVoice()">다시 음성인식 시작</button>'+voiceFallbackHtml();
+     msg.textContent='음성인식을 사용할 수 없습니다.';
+     res.innerHTML='<div class="warn">브라우저의 음성인식 서비스를 사용할 수 없습니다.<br>아래 입력창에서 <b>키보드 🎤</b>을 사용해 이름을 말할 수 있습니다.</div>'+voiceFallbackHtml(true);
+     setTimeout(focusVoiceFallback,120);
    }else if(code==='no-speech'||code==='aborted'){
      voiceListening=false;
      msg.textContent='음성을 듣지 못했습니다.';
-     res.innerHTML='<div class="warn">오류 코드: <b>'+esc(code)+'</b><br>이번에는 음성을 듣지 못했습니다. 다시 시도해 주세요.</div><button class="primary" style="width:100%;margin-top:8px" onclick="retryVoice()">다시 음성인식 시작</button>'+voiceFallbackHtml();
+     res.innerHTML='<div class="warn">오류 코드: <b>'+esc(code)+'</b><br>다시 시도하거나 아래 키보드 🎤을 사용해 주세요.</div>'+voiceFallbackHtml(true);
+     setTimeout(focusVoiceFallback,120);
    }else{
      voiceListening=false;
      msg.textContent='음성인식 오류: '+code;
-     res.innerHTML='<div class="warn">오류 코드: <b>'+esc(code)+'</b></div><button class="primary" style="width:100%;margin-top:8px" onclick="retryVoice()">다시 음성인식 시작</button>'+voiceFallbackHtml();
+     res.innerHTML='<div class="warn">오류 코드: <b>'+esc(code)+'</b></div>'+voiceFallbackHtml(true);
+     setTimeout(focusVoiceFallback,120);
    }
  };
  rec.onend=()=>{
    activeVoiceRec=null;
    if(gotFinal||endedNormally||!voiceListening)return;
-   // iOS는 세션을 임의로 종료할 수 있으므로 무한 재시작하지 않습니다.
    if(isIOS){
      voiceListening=false;
      msg.textContent='음성인식이 종료되었습니다.';
-     res.innerHTML='<div class="warn">음성 입력이 끝났습니다. 이름을 다시 말하려면 아래 버튼을 누르세요.</div><button class="primary" style="width:100%;margin-top:8px" onclick="retryVoice()">다시 음성인식 시작</button>'+voiceFallbackHtml();
+     res.innerHTML='<div class="warn">음성 입력이 끝났습니다.</div>'+voiceFallbackHtml(true);
+     setTimeout(focusVoiceFallback,120);
    }
  };
- try{
-   msg.textContent='🎙️ 마이크를 준비하고 있습니다...';
-   // 반드시 사용자 클릭 흐름 안에서 호출합니다.
-   rec.start();
- }catch(err){
-   voiceListening=false;
-   msg.textContent='음성인식을 시작하지 못했습니다.';
-   res.innerHTML='<div class="warn">시작 오류: <b>'+esc(err?.name||'unknown')+'</b></div><button class="primary" style="width:100%;margin-top:8px" onclick="retryVoice()">다시 음성인식 시작</button>'+voiceFallbackHtml();
+ try{msg.textContent='🎙️ 마이크를 준비하고 있습니다...';rec.start()}
+ catch(err){
+   voiceListening=false; msg.textContent='음성인식을 시작하지 못했습니다.';
+   res.innerHTML='<div class="warn">시작 오류: <b>'+esc(err?.name||'unknown')+'</b></div>'+voiceFallbackHtml(true);
+   setTimeout(focusVoiceFallback,120);
  }
 }
 function retryVoice(){
  try{activeVoiceRec?.abort()}catch(_){ }
  voiceListening=true; voiceRestartCount=0; voiceGotResult=false;
+ const msg=document.getElementById('voiceMsg'),res=document.getElementById('voiceResults');
+ if(isIOSDevice()){showIOSVoiceFallback(msg,res);return;}
  const SR=getSpeechRecognitionCtor();
- if(SR)startVoiceRecognition(SR,document.getElementById('voiceMsg'),document.getElementById('voiceResults'));
- else{voiceListening=false;document.getElementById('voiceMsg').textContent='음성인식을 사용할 수 없습니다.';document.getElementById('voiceResults').innerHTML=voiceFallbackHtml()}
+ if(SR)startVoiceRecognition(SR,msg,res);
+ else{voiceListening=false;msg.textContent='음성인식을 사용할 수 없습니다.';res.innerHTML=voiceFallbackHtml();setTimeout(focusVoiceFallback,120)}
 }
-function voiceFallbackHtml(){return '<input id="voiceFallback" type="text" autocomplete="off" placeholder="이름 입력 또는 키보드 음성 입력" style="width:100%;padding:13px;border:1px solid #dbe2ef;border-radius:13px;font-size:16px"><button class="primary" style="width:100%;margin-top:8px" onclick="submitVoiceFallback()">이 이름으로 찾기</button>'}
-function submitVoiceFallback(){const input=document.getElementById('voiceFallback');if(input?.value.trim())handleVoiceText(input.value.trim())}
+function voiceFallbackHtml(isIOS=false){
+ return '<div style="margin-top:8px"><input id="voiceFallback" type="text" inputmode="text" enterkeyhint="search" autocomplete="off" autocorrect="off" autocapitalize="words" spellcheck="false" placeholder="이름을 입력하거나 키보드 🎤으로 말하세요" style="width:100%;padding:14px;border:1px solid #dbe2ef;border-radius:13px;font-size:17px;box-sizing:border-box"><button class="primary" style="width:100%;margin-top:8px" onclick="submitVoiceFallback()">이 이름으로 찾기</button></div>'+ (isIOS?'<div class="muted" style="margin-top:8px;text-align:center">앱의 🎙️ 버튼은 이 입력창을 바로 열어 줍니다.</div>':'');
+}
+function submitVoiceFallback(){
+ const input=document.getElementById('voiceFallback');
+ const value=input?.value.trim();
+ if(!value)return;
+ clearTimeout(voiceFallbackTimer);
+ handleVoiceText(value);
+}
 function handleVoiceText(spoken){
   const msg=document.getElementById('voiceMsg'),res=document.getElementById('voiceResults');
   query=spoken;const search=document.getElementById('search');if(search)search.value=spoken;
