@@ -380,16 +380,22 @@ function saveSpecialModal(){
  closeSpecialModal();
 }
 let activeVoiceRec=null, voiceListening=false, voiceRestartCount=0, voiceGotResult=false;
+function getSpeechRecognitionCtor(){
+ const isIOS=/iPhone|iPad|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+ // iOS Safari에서는 표준 이름보다 webkitSpeechRecognition을 우선 사용합니다.
+ if(isIOS) return window.webkitSpeechRecognition||window.SpeechRecognition||null;
+ return window.SpeechRecognition||window.webkitSpeechRecognition||null;
+}
 function voiceInput(){
- const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+ const SR=getSpeechRecognitionCtor();
  document.getElementById('voiceModal').style.display='flex';
  const msg=document.getElementById('voiceMsg'),res=document.getElementById('voiceResults');res.innerHTML='';
  voiceListening=true; voiceRestartCount=0; voiceGotResult=false; activeVoiceRec=null;
  const isIOS=/iPhone|iPad|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
  const isHomeScreenApp=navigator.standalone===true||window.matchMedia('(display-mode: standalone)').matches;
  if(isIOS&&isHomeScreenApp){
-   msg.textContent='iPhone 홈 화면 앱에서는 Safari 음성인식이 제한될 수 있습니다. Safari에서 웹사이트를 직접 열어 음성 체크를 사용하세요.';
-   res.innerHTML='<div class="warn">현재 홈 화면 앱 모드에서는 웹앱 음성인식이 제한될 수 있습니다. Safari에서 이 사이트를 직접 열어 다시 시도하세요.</div>'+voiceFallbackHtml();
+   msg.textContent='iPhone 홈 화면 앱에서는 음성인식이 제한될 수 있습니다.';
+   res.innerHTML='<div class="warn">iPhone에서는 홈 화면 앱보다 Safari에서 이 사이트를 직접 여는 것이 안전합니다.</div>'+voiceFallbackHtml();
    voiceListening=false; return;
  }
  if(!SR){
@@ -400,49 +406,56 @@ function voiceInput(){
 }
 function startVoiceRecognition(SR,msg,res){
  if(!voiceListening)return;
+ try{activeVoiceRec?.abort()}catch(_){ }
  const rec=new SR(); activeVoiceRec=rec;
+ const isIOS=/iPhone|iPad|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
  rec.lang='ko-KR';
+ // iOS Safari에서는 한 번의 발화를 안정적으로 받는 방식으로 시작합니다.
  rec.interimResults=true;
- rec.continuous=true;
+ rec.continuous=!isIOS;
  rec.maxAlternatives=3;
- let gotFinal=false;
+ let gotFinal=false, endedNormally=false;
  rec.onstart=()=>{
    msg.textContent='🎙️ 듣고 있습니다. 이름을 말씀하세요.';
-   res.innerHTML='<div class="muted">말씀하신 내용을 듣는 중입니다. 이름을 말한 뒤 잠시 기다려 주세요.</div>';
+   res.innerHTML='<div class="muted">지금 이름을 말씀하세요. 인식이 끝나면 자동으로 검색합니다.</div>';
+ };
+ rec.onaudiostart=()=>{
+   msg.textContent='🎙️ 듣고 있습니다. 이름을 말씀하세요.';
+ };
+ rec.onsoundstart=()=>{
+   msg.textContent='🎙️ 듣고 있습니다… 이름을 말씀하세요.';
  };
  rec.onresult=e=>{
-   let interim=''; let finalText='';
+   let interim='', finalText='';
    for(let i=e.resultIndex;i<e.results.length;i++){
      const t=e.results[i][0].transcript.trim();
      if(e.results[i].isFinal) finalText+=t+' ';
      else interim+=t+' ';
    }
-   if(interim && !finalText) msg.textContent='🎙️ 듣는 중: '+interim.trim();
+   if(interim.trim()) msg.textContent='🎙️ 듣는 중: '+interim.trim();
    if(finalText.trim()){
-     gotFinal=true; voiceGotResult=true; voiceListening=false;
+     gotFinal=true; voiceGotResult=true; voiceListening=false; endedNormally=true;
      handleVoiceText(finalText.trim());
      try{rec.stop()}catch(_){ }
    }
  };
  rec.onerror=e=>{
    const code=e.error||'unknown';
+   // iOS에서 not-allowed/service-not-allowed는 코드로 강제 우회할 수 없습니다.
+   // 자동 재시작을 하지 않고 원인을 명확히 보여줍니다.
    if(code==='not-allowed'||code==='service-not-allowed'){
      voiceListening=false;
-     msg.textContent='음성인식 서비스가 시작되지 않았습니다.';
-     const iosHelp=/iPhone|iPad|iPod/.test(navigator.userAgent)
-       ? 'Safari의 음성인식 서비스가 현재 사용할 수 없는 상태입니다. iPhone의 Siri 및 받아쓰기 설정을 확인한 뒤 다시 시도하세요.'
-       : '브라우저의 음성인식 권한과 음성인식 서비스를 확인한 뒤 다시 시도하세요.';
-     res.innerHTML='<div class="warn">오류 코드: <b>'+esc(code)+'</b><br>'+iosHelp+'</div><button class="primary" style="width:100%;margin-top:8px" onclick="retryVoice()">다시 음성인식 시작</button>';
+     msg.textContent='iPhone 음성인식 서비스를 사용할 수 없습니다.';
+     const ios=/iPhone|iPad|iPod/.test(navigator.userAgent);
+     res.innerHTML='<div class="warn">오류 코드: <b>'+esc(code)+'</b><br>'+
+       (ios
+        ? 'Safari가 음성인식 서비스를 거부했습니다. <b>설정 → Siri(또는 Apple Intelligence 및 Siri) → Siri 및 받아쓰기</b>가 켜져 있는지 확인한 뒤 Safari를 완전히 종료하고 다시 열어 주세요.'
+        : '브라우저의 음성인식 권한 또는 음성인식 서비스를 확인해 주세요.')+
+       '</div><button class="primary" style="width:100%;margin-top:8px" onclick="retryVoice()">다시 음성인식 시작</button>'+voiceFallbackHtml();
    }else if(code==='no-speech'||code==='aborted'){
-     if(voiceListening && voiceRestartCount<3){
-       voiceRestartCount++;
-       msg.textContent='🎙️ 다시 듣고 있습니다. 이름을 말씀하세요.';
-       setTimeout(()=>{if(voiceListening)startVoiceRecognition(SR,msg,res)},350);
-     }else{
-       voiceListening=false;
-       msg.textContent='음성을 듣지 못했습니다.';
-       res.innerHTML='<div class="warn">오류 코드: <b>'+esc(code)+'</b><br>마이크에 가까이 대고 이름을 다시 말씀해 주세요.</div><button class="primary" style="width:100%;margin-top:8px" onclick="retryVoice()">다시 음성인식 시작</button>';
-     }
+     voiceListening=false;
+     msg.textContent='음성을 듣지 못했습니다.';
+     res.innerHTML='<div class="warn">오류 코드: <b>'+esc(code)+'</b><br>이번에는 음성을 듣지 못했습니다. 다시 시도해 주세요.</div><button class="primary" style="width:100%;margin-top:8px" onclick="retryVoice()">다시 음성인식 시작</button>'+voiceFallbackHtml();
    }else{
      voiceListening=false;
      msg.textContent='음성인식 오류: '+code;
@@ -450,14 +463,18 @@ function startVoiceRecognition(SR,msg,res){
    }
  };
  rec.onend=()=>{
-   if(voiceListening && !gotFinal && voiceRestartCount<3){
-     voiceRestartCount++;
-     msg.textContent='🎙️ 음성 연결을 다시 준비하고 있습니다...';
-     setTimeout(()=>{if(voiceListening)startVoiceRecognition(SR,msg,res)},350);
+   activeVoiceRec=null;
+   if(gotFinal||endedNormally||!voiceListening)return;
+   // iOS는 세션을 임의로 종료할 수 있으므로 무한 재시작하지 않습니다.
+   if(isIOS){
+     voiceListening=false;
+     msg.textContent='음성인식이 종료되었습니다.';
+     res.innerHTML='<div class="warn">음성 입력이 끝났습니다. 이름을 다시 말하려면 아래 버튼을 누르세요.</div><button class="primary" style="width:100%;margin-top:8px" onclick="retryVoice()">다시 음성인식 시작</button>'+voiceFallbackHtml();
    }
  };
  try{
    msg.textContent='🎙️ 마이크를 준비하고 있습니다...';
+   // 반드시 사용자 클릭 흐름 안에서 호출합니다.
    rec.start();
  }catch(err){
    voiceListening=false;
@@ -468,8 +485,9 @@ function startVoiceRecognition(SR,msg,res){
 function retryVoice(){
  try{activeVoiceRec?.abort()}catch(_){ }
  voiceListening=true; voiceRestartCount=0; voiceGotResult=false;
- const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+ const SR=getSpeechRecognitionCtor();
  if(SR)startVoiceRecognition(SR,document.getElementById('voiceMsg'),document.getElementById('voiceResults'));
+ else{voiceListening=false;document.getElementById('voiceMsg').textContent='음성인식을 사용할 수 없습니다.';document.getElementById('voiceResults').innerHTML=voiceFallbackHtml()}
 }
 function voiceFallbackHtml(){return '<input id="voiceFallback" type="text" autocomplete="off" placeholder="이름 입력 또는 키보드 음성 입력" style="width:100%;padding:13px;border:1px solid #dbe2ef;border-radius:13px;font-size:16px"><button class="primary" style="width:100%;margin-top:8px" onclick="submitVoiceFallback()">이 이름으로 찾기</button>'}
 function submitVoiceFallback(){const input=document.getElementById('voiceFallback');if(input?.value.trim())handleVoiceText(input.value.trim())}
