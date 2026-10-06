@@ -383,20 +383,44 @@ function voiceInput(){
  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
  document.getElementById('voiceModal').style.display='flex';
  const msg=document.getElementById('voiceMsg'),res=document.getElementById('voiceResults');res.innerHTML='';
- if(!SR){msg.textContent='이 브라우저는 음성인식을 지원하지 않습니다. Chrome 또는 Edge에서 사용하세요.';return}
+  const isIOS=/iPhone|iPad|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+  const isHomeScreenApp=navigator.standalone===true||window.matchMedia('(display-mode: standalone)').matches;
+  if(isIOS&&isHomeScreenApp){
+    msg.textContent='iPhone 홈 화면 앱 모드에서는 Safari 음성인식이 제한될 수 있습니다. 아래 이름 입력란의 키보드 마이크로 받아쓰세요.';
+    res.innerHTML='<div class="warn">키보드에 마이크가 보이지 않으면 iPhone 설정 → 일반 → 키보드 → 받아쓰기 활성화를 확인하세요. 앱 자체 음성인식을 쓰려면 Safari에서 웹사이트를 직접 여세요.</div>'+voiceFallbackHtml();
+    return;
+  }
+  if(!SR){msg.textContent='이 화면에서 음성인식을 사용할 수 없습니다. 아래 이름 입력란에서 키보드 마이크를 이용하세요.';res.innerHTML=voiceFallbackHtml();return}
  msg.textContent='🎙️ 듣고 있습니다. 이름을 말씀하세요.';
  const rec=new SR();rec.lang='ko-KR';rec.interimResults=false;rec.continuous=false;rec.maxAlternatives=3;
- rec.onresult=e=>{
-   const spoken=e.results[0][0].transcript.trim();query=spoken;document.getElementById('search').value=spoken;
-   const exact=state.people.filter(p=>nameNorm(p.name)===nameNorm(spoken));
-   const matches=exact.length?exact:state.people.filter(p=>nameNorm(spoken).includes(nameNorm(p.name))||nameNorm(p.name).includes(nameNorm(spoken)));
-   msg.textContent='인식: '+spoken;
-   if(matches.length===1){toggle(matches[0].id);res.innerHTML=`<div class="ok">✓ ${esc(matches[0].name)} · ${esc(birth6(matches[0].birth))} 체크 완료</div>`;}
-   else if(matches.length){res.innerHTML='<div class="warn">동명이인 또는 유사한 이름입니다. 생년월일을 확인하세요.</div>'+matches.map(p=>`<div class="result" onclick="toggle('${String(p.id).replace(/'/g,"\\'")}');closeVoice()"><b>${esc(p.name)}</b><br><span class="muted">${esc(birth6(p.birth))}${p.phone?' · '+esc(p.phone):''}${p.address?' · '+esc(p.address):''}</span></div>`).join('')}
-   else res.innerHTML='<div class="warn">일치하는 대상자가 없습니다. 검색 결과를 확인하세요.</div>';
-   drawSearch()
- };
- rec.onerror=e=>msg.textContent='음성인식 오류: '+(e.error||'다시 시도해주세요.');rec.start()
+  rec.onresult=e=>handleVoiceText(e.results[0][0].transcript.trim());
+  rec.onerror=e=>{
+    const code=e.error||'unknown';
+    if(code==='not-allowed'||code==='service-not-allowed'){
+      msg.textContent='브라우저의 음성인식 권한 또는 음성인식 서비스가 차단되었습니다.';
+      const iosHelp=/iPhone|iPad|iPod/.test(navigator.userAgent)
+        ? 'iPhone 설정 → 일반 → 키보드에서 받아쓰기 활성화를 확인하고, Safari의 웹사이트 설정에서 마이크를 허용하세요. 홈 화면 앱에서는 Safari 탭으로 직접 열어 다시 시도할 수도 있습니다.'
+        : '사이트 설정에서 마이크를 허용하고, 휴대폰 설정에서도 브라우저의 마이크 권한을 확인한 뒤 페이지를 새로고침하세요.';
+      res.innerHTML='<div class="warn">'+iosHelp+' 아래 입력란에서는 키보드 마이크(음성 받아쓰기)를 대신 사용할 수 있습니다.</div>'+voiceFallbackHtml();
+    }else{
+      msg.textContent='음성인식 오류: '+code;
+      res.innerHTML=voiceFallbackHtml();
+    }
+  };
+  try{rec.start()}catch(err){msg.textContent='음성인식을 시작하지 못했습니다. 브라우저 권한을 확인한 뒤 다시 시도하세요.';res.innerHTML=voiceFallbackHtml()}
+}
+function voiceFallbackHtml(){return '<input id="voiceFallback" type="text" autocomplete="off" placeholder="이름 입력 또는 키보드 음성 입력" style="width:100%;padding:13px;border:1px solid #dbe2ef;border-radius:13px;font-size:16px"><button class="primary" style="width:100%;margin-top:8px" onclick="submitVoiceFallback()">이 이름으로 찾기</button>'}
+function submitVoiceFallback(){const input=document.getElementById('voiceFallback');if(input?.value.trim())handleVoiceText(input.value.trim())}
+function handleVoiceText(spoken){
+  const msg=document.getElementById('voiceMsg'),res=document.getElementById('voiceResults');
+  query=spoken;const search=document.getElementById('search');if(search)search.value=spoken;
+  const exact=state.people.filter(p=>nameNorm(p.name)===nameNorm(spoken));
+  const matches=exact.length?exact:state.people.filter(p=>nameNorm(spoken).includes(nameNorm(p.name))||nameNorm(p.name).includes(nameNorm(spoken)));
+  msg.textContent='인식: '+spoken;
+  if(matches.length===1){toggle(matches[0].id);res.innerHTML=`<div class="ok">✓ ${esc(matches[0].name)} · ${esc(birth6(matches[0].birth))} 체크 완료</div>`;}
+  else if(matches.length){res.innerHTML='<div class="warn">동명이인 또는 유사한 이름입니다. 생년월일을 확인하세요.</div>'+matches.map(p=>`<div class="result" onclick="toggle('${String(p.id).replace(/'/g,"\\'")}');closeVoice()"><b>${esc(p.name)}</b><br><span class="muted">${esc(birth6(p.birth))}${p.phone?' · '+esc(p.phone):''}${p.address?' · '+esc(p.address):''}</span></div>`).join('')}
+  else res.innerHTML='<div class="warn">일치하는 대상자가 없습니다. 검색 결과를 확인하세요.</div>';
+  drawSearch()
 }
 function closeVoice(){document.getElementById('voiceModal').style.display='none';render()}
 
