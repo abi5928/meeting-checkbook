@@ -26,7 +26,7 @@ button{border:0;border-radius:11px;padding:10px 12px;font-weight:750;color:#1822
 nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:min(560px,100%);background:#fff;border-top:1px solid #e6eaf1;display:flex;padding:7px 3px calc(7px + env(safe-area-inset-bottom));z-index:6}
 nav button{flex:1;background:none;font-size:11px;padding:7px 2px;color:#6d7788}nav button.active{color:#4f7cff;font-weight:800}
 .modal{position:fixed;inset:0;background:#0008;display:none;align-items:flex-end;z-index:20}.sheet{background:#fff;width:min(560px,100%);margin:auto;border-radius:22px 22px 0 0;padding:20px}.result{padding:13px;border:1px solid #e2e7f0;border-radius:12px;margin:8px 0}.close{width:100%;margin-top:10px}.record{padding:12px 0;border-bottom:1px solid #edf0f5}.toast{position:fixed;left:50%;bottom:82px;transform:translateX(-50%);background:#182235;color:#fff;padding:10px 16px;border-radius:99px;display:none;z-index:30;white-space:nowrap}
-.small{font-size:12px;padding:7px 9px}.danger{background:#fff0f0;color:#b42318}
+.small{font-size:12px;padding:7px 9px}.danger{background:#fff0f0;color:#b42318}.routeItem{display:grid;grid-template-columns:30px 1fr auto;gap:8px;align-items:center;padding:11px 4px;border-bottom:1px solid #edf0f5}.routeNum{font-weight:800;text-align:center;color:#4f7cff}.routeAddr{font-size:13px;color:#5f6b7a;margin-top:3px}.routeActions{display:grid;grid-template-columns:1fr 1fr;gap:8px}.routeSummary{background:#f5f7ff;border-radius:14px;padding:12px;line-height:1.6}.routeMap{height:300px;border-radius:14px;overflow:hidden;margin-top:10px;border:1px solid #e6eaf0;background:#f7f8fb}.routeMap svg{width:100%;height:100%;display:block}.routeMap .routeLine{fill:none;stroke:#4f7cff;stroke-width:4;stroke-linecap:round;stroke-linejoin:round}.routeMap .routeGrid{stroke:#dfe4ed;stroke-width:1}.routeMap .routeLabel{font-size:14px;font-weight:800;fill:#182235}.routeMap .routeNum{font-size:11px;font-weight:800;fill:#fff}.routeMap .routeDot{fill:#fff;stroke:#182235;stroke-width:2}.routeMap .startDot{fill:#182235;stroke:#fff;stroke-width:2}.routeSelect{display:flex;align-items:center;gap:10px;padding:11px 4px;border-bottom:1px solid #edf0f5}.routeSelect input{width:22px;height:22px;flex:none}.routeSelectMain{min-width:0;flex:1}.routeSelectName{font-weight:800}.routeSelectAddr{font-size:12px;color:#68758a;margin-top:3px}.routeTop{display:flex;justify-content:space-between;align-items:center;gap:8px}.routeStartBox{background:#f7f9fd;border:1px solid #e5e9f1;border-radius:13px;padding:11px}.routeHint{background:#fff7e6;color:#7a5600;padding:10px;border-radius:12px;font-size:12px;line-height:1.55}
 </style>
 </head>
 <body>
@@ -41,6 +41,7 @@ nav button{flex:1;background:none;font-size:11px;padding:7px 2px;color:#6d7788}n
  <button id="navCheck" onclick="tab='check';render()">📋<br>체크</button>
  <button id="navRecords" onclick="tab='records';render()">🗂<br>기록</button>
  <button id="navManage" onclick="tab='manage';render()">⚙<br>관리</button>
+ <button id="navRoute" onclick="tab='route';render()">🚗<br>동선</button>
 </nav>
 </div>
 <div class="modal" id="voiceModal"><div class="sheet">
@@ -94,6 +95,10 @@ let state=JSON.parse(localStorage.getItem(KEY)||'null')||{
 };
 if(!Array.isArray(state.trash)) state.trash=[];
 let tab='check',query='',deleteMode=false,deleteSelected=new Set(),activeRecordId=null,memoPersonId=null,specialPersonId=null;
+const ROUTE_KEY='meeting_checkbook_route_v1';
+let routeState=JSON.parse(localStorage.getItem(ROUTE_KEY)||'null')||{stops:[],start:'',optimized:[],routeDistance:0,routeDuration:0,routeGeometry:null};
+routeState.stops=Array.isArray(routeState.stops)?routeState.stops:[];routeState.optimized=Array.isArray(routeState.optimized)?routeState.optimized:[];routeState.selectedIds=Array.isArray(routeState.selectedIds)?routeState.selectedIds:routeState.stops.map(x=>x.id);routeState.startMode=['auto','current','stop'].includes(routeState.startMode)?routeState.startMode:(/Android|iPhone|iPad|iPod/i.test(navigator.userAgent)?'current':'auto');routeState.startStopId=routeState.startStopId||routeState.start||'';routeState.routeStartMeta=routeState.routeStartMeta||null;
+function saveRoute(){localStorage.setItem(ROUTE_KEY,JSON.stringify(routeState))}
 
 function save(){localStorage.setItem(KEY,JSON.stringify(state))}
 function esc(s){return String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
@@ -168,7 +173,7 @@ function toggle(id){
  save();
  render();
 }
-function setNav(){['Check','Records','Manage'].forEach(x=>document.getElementById('nav'+x).classList.toggle('active',tab===x.toLowerCase()));document.getElementById('navNew').classList.remove('active')}
+function setNav(){['Check','Records','Manage','Route'].forEach(x=>document.getElementById('nav'+x).classList.toggle('active',tab===x.toLowerCase()));document.getElementById('navNew').classList.remove('active')}
 function inferTopicType(title){const t=String(title||'');if(['방문상담','물품수령','출석체크','안부확인'].includes(t))return t;if(t==='출석')return '출석체크';return '기타'}
 function updateNewTopicUI(){const type=document.getElementById('newTopicType')?.value||'기타';const input=document.getElementById('newTitle');if(!input)return;input.placeholder=type==='기타'?'제목을 입력하세요 (선택)':'예: '+type+' 관련 업무 제목 (선택)'}
 function newTopic(){
@@ -243,7 +248,7 @@ function createNewTopic(){
  };
  reader.readAsArrayBuffer(f);
 }
-function render(){setNav();if(tab==='check')renderCheck();else if(tab==='records')renderRecords();else renderManage()}
+function render(){setNav();if(tab==='check')renderCheck();else if(tab==='records')renderRecords();else if(tab==='manage')renderManage();else if(tab==='route')renderRoute()}
 document.getElementById('datePicker').value=state.date;document.getElementById('datePicker').onchange=e=>{state.date=e.target.value;if(activeRecordId){const r=state.records.find(x=>x.id===activeRecordId);if(r)r.date=state.date;}save();render()};
 
 function renderCheck(){
@@ -639,6 +644,350 @@ async function exportExcel(r){
  const a=document.createElement('a');a.href=url;a.download=filename;document.body.appendChild(a);a.click();a.remove();
  setTimeout(()=>URL.revokeObjectURL(url),1000);
 }
+
+function routeAddressCol(heads){
+ const exact=['주소','거주지','주소지','도로명주소','도로명 주소','상세주소'];
+ let i=heads.findIndex(v=>exact.includes(String(v).trim()));
+ if(i>=0)return i;
+ return heads.findIndex(v=>String(v).includes('주소'));
+}
+function routeNameCol(heads){
+ const exact=['이름','성명','대상자명','대상자'];
+ let i=heads.findIndex(v=>exact.includes(String(v).trim()));
+ return i>=0?i:heads.findIndex(v=>String(v).includes('이름')||String(v).includes('성명'));
+}
+function routeImportExcel(){
+ const f=document.getElementById('routeExcelFile')?.files[0];
+ if(!f){alert('방문 대상자 Excel 파일을 선택하세요.');return}
+ const reader=new FileReader();
+ reader.onload=e=>{
+  try{
+   const wb=XLSX.read(e.target.result,{type:'array',cellDates:true});
+   const ws=wb.Sheets[wb.SheetNames[0]];
+   const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:'',raw:true});
+   let h=rows.findIndex(row=>row.some(v=>['이름','성명','대상자명','대상자','주소','거주지','도로명주소'].includes(String(v).trim())));
+   if(h<0)h=0;
+   const heads=rows[h].map(v=>String(v).trim());
+   const ni=routeNameCol(heads), ai=routeAddressCol(heads);
+   if(ai<0){alert('주소 열을 찾지 못했습니다.\n예: 주소, 거주지, 주소지, 도로명주소');return}
+   const stops=[];
+   rows.slice(h+1).forEach(row=>{
+    const address=String(row[ai]??'').trim(); if(!address)return;
+    const name=ni>=0?String(row[ni]??'').trim():'';
+    stops.push({id:crypto.randomUUID(),name:name||('방문 '+(stops.length+1)),address,lat:null,lon:null});
+   });
+   if(!stops.length){alert('주소가 있는 행을 찾지 못했습니다.');return}
+   routeState.stops=stops;routeState.selectedIds=stops.map(x=>x.id);routeState.optimized=[];routeState.startMode=/Android|iPhone|iPad|iPod/i.test(navigator.userAgent)?'current':'auto';routeState.startStopId='';routeState.routeStartMeta=null;routeState.routeDistance=0;routeState.routeDuration=0;routeState.routeGeometry=null;saveRoute();render();toast(stops.length+'곳의 방문지를 불러왔습니다.');
+  }catch(err){alert('Excel 읽기 오류: '+err.message)}
+ };
+ reader.readAsArrayBuffer(f)
+}
+function routeClear(){if(!routeState.stops.length)return;if(!confirm('방문 동선 목록을 모두 지울까요?'))return;routeState={stops:[],start:'',selectedIds:[],optimized:[],routeDistance:0,routeDuration:0,routeGeometry:null,startMode:'auto',startStopId:'',routeStartMeta:null};saveRoute();render();}
+function routeDelete(id){routeState.stops=routeState.stops.filter(x=>x.id!==id);routeState.selectedIds=routeState.selectedIds.filter(x=>String(x)!==String(id));routeState.optimized=[];routeState.routeStartMeta=null;saveRoute();render();}
+function routeToggleSelected(id,checked){const ids=new Set(routeState.selectedIds.map(String));if(checked)ids.add(String(id));else ids.delete(String(id));routeState.selectedIds=[...ids];routeState.optimized=[];routeState.routeStartMeta=null;saveRoute();render();}
+function routeToggleAll(){const all=routeState.stops.map(x=>String(x.id));const selected=new Set(routeState.selectedIds.map(String));const every=all.length>0&&all.every(id=>selected.has(id));routeState.selectedIds=every?[]:all;routeState.optimized=[];routeState.routeStartMeta=null;saveRoute();render();}
+function routeStartModeChanged(v){routeState.startMode=v;if(v!=='stop')routeState.startStopId='';routeState.optimized=[];routeState.routeStartMeta=null;saveRoute();render();}
+function routeStartStopChanged(v){routeState.startStopId=v;routeState.startMode='stop';routeState.optimized=[];routeState.routeStartMeta=null;saveRoute();render();}
+async function getCurrentPosition(){
+ return new Promise((resolve,reject)=>{
+  if(!navigator.geolocation){reject(new Error('이 기기에서 현재 위치 기능을 사용할 수 없습니다.'));return}
+  navigator.geolocation.getCurrentPosition(pos=>resolve({lat:Number(pos.coords.latitude),lon:Number(pos.coords.longitude),name:'현재 위치',address:'현재 위치'}),err=>reject(new Error(err.code===1?'현재 위치 권한이 허용되지 않았습니다.':(err.message||'현재 위치를 확인할 수 없습니다.'))),{enableHighAccuracy:true,timeout:10000,maximumAge:60000});
+ });
+}
+async function geocodeRouteAddress(address){
+ const url='https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&countrycodes=kr&q='+encodeURIComponent(address);
+ const res=await fetch(url,{headers:{'Accept':'application/json'}});
+ if(!res.ok)throw new Error('주소 검색 서비스 오류 ('+res.status+')');
+ const data=await res.json();
+ if(!data.length)return null;
+ return {lat:Number(data[0].lat),lon:Number(data[0].lon),display:data[0].display_name||address};
+}
+function distKm(a,b){const R=6371,rad=Math.PI/180;const dLat=(b.lat-a.lat)*rad,dLon=(b.lon-a.lon)*rad;const x=Math.sin(dLat/2)**2+Math.cos(a.lat*rad)*Math.cos(b.lat*rad)*Math.sin(dLon/2)**2;return 2*R*Math.asin(Math.sqrt(x));}
+async function osrmTable(points){
+ // OSRM table 엔드포인트가 환경에 따라 불안정할 수 있어, 실제 도로 경로를 이용한 1:1 거리/시간으로 구성합니다.
+ const n=points.length;
+ const distances=Array.from({length:n},()=>Array(n).fill(0));
+ const durations=Array.from({length:n},()=>Array(n).fill(0));
+ for(let i=0;i<n;i++){
+  for(let j=0;j<n;j++){
+   if(i===j)continue;
+   const a=points[i],b=points[j];
+   const coords=Number(a.lon)+','+Number(a.lat)+';'+Number(b.lon)+','+Number(b.lat);
+   const url='https://router.project-osrm.org/route/v1/driving/'+coords+'?overview=false&steps=false';
+   const res=await fetch(url);
+   if(!res.ok)throw new Error('도로 경로 계산 서비스 오류 ('+res.status+')');
+   const data=await res.json();
+   if(data.code!=='Ok'||!Array.isArray(data.routes)||!data.routes.length)throw new Error('도로 경로를 계산할 수 없습니다.');
+   distances[i][j]=Number(data.routes[0].distance)||Infinity;
+   durations[i][j]=Number(data.routes[0].duration)||Infinity;
+  }
+ }
+ return {distances,durations};
+}
+function optimizeStopsByMatrix(points,start,table){
+ const all=[start,...points];
+ const idx=new Map(all.map((p,i)=>[String(p.id),i]));
+ const d=table?.distances;
+ if(!Array.isArray(d)||d.length!==all.length)throw new Error('도로 거리표를 정상적으로 받지 못했습니다.');
+ const getD=(a,b)=>{
+  const ia=idx.get(String(a.id)),ib=idx.get(String(b.id));
+  if(ia===undefined||ib===undefined||!Array.isArray(d[ia]))return Infinity;
+  const v=Number(d[ia][ib]);
+  return Number.isFinite(v)?v:Infinity;
+ };
+ const remain=points.slice(),out=[];let cur=start;
+ while(remain.length){
+  let best=-1,bestD=Infinity;
+  remain.forEach((p,i)=>{const v=getD(cur,p);if(v<bestD){bestD=v;best=i}});
+  if(best<0)throw new Error('일부 방문지 사이의 자동차 도로 경로를 찾지 못했습니다.');
+  out.push(remain.splice(best,1)[0]);cur=out[out.length-1];
+ }
+ let improved=true,guard=0;
+ while(improved&&guard++<20){
+  improved=false;
+  for(let i=0;i<out.length-1;i++){
+   for(let j=i+1;j<out.length;j++){
+    const a=i===0?start:out[i-1],b=out[i],c=out[j],e=j===out.length-1?null:out[j+1];
+    const old=getD(a,b)+(e?getD(c,e):0);
+    const neu=getD(a,c)+(e?getD(b,e):0);
+    if(Number.isFinite(old)&&Number.isFinite(neu)&&neu+50<old){out.splice(i,j-i+1,...out.slice(i,j+1).reverse());improved=true}
+   }
+  }
+ }
+ return out;
+}
+async function fetchOsrmRoute(ordered){
+ const coords=ordered.map(p=>Number(p.lon)+','+Number(p.lat)).join(';');
+ const url='https://router.project-osrm.org/route/v1/driving/'+coords+'?overview=full&geometries=geojson&steps=false';
+ const res=await fetch(url);if(!res.ok)throw new Error('실제 도로 경로를 가져오지 못했습니다.');
+ const data=await res.json();if(data.code!=='Ok'||!data.routes?.length)throw new Error('실제 도로 경로가 없습니다.');
+ return data.routes[0];
+}
+async function optimizeRoute(){
+ const selectedIds=new Set((routeState.selectedIds||[]).map(String));
+ const selected=routeState.stops.filter(x=>selectedIds.has(String(x.id)));
+ if(!selected.length){alert('방문할 대상자를 1명 이상 선택하세요.');return}
+ const btn=document.getElementById('routeOptimizeBtn');if(btn)btn.disabled=true;
+ let stage='준비';
+ try{
+  const targets=selected.slice(),failed=[];
+  stage='주소 좌표 확인';
+  for(let i=0;i<targets.length;i++){
+   if(!Number.isFinite(Number(targets[i].lat))||!Number.isFinite(Number(targets[i].lon))){
+    const g=await geocodeRouteAddress(targets[i].address);
+    if(g){targets[i].lat=g.lat;targets[i].lon=g.lon;targets[i].geocoded=g.display}else failed.push(targets[i]);
+   }
+   if(i<targets.length-1)await new Promise(r=>setTimeout(r,1100));
+  }
+  if(failed.length){alert('주소를 찾지 못한 방문지가 '+failed.length+'곳 있습니다.\n\n'+failed.map(x=>'• '+x.name+' — '+x.address).join('\n')+'\n\n주소를 확인한 뒤 다시 실행하세요.');return}
+  if(!targets.every(x=>Number.isFinite(Number(x.lat))&&Number.isFinite(Number(x.lon))))throw new Error('좌표가 없는 방문지가 있습니다.');
+
+  let startPoint=null,points=[];
+  if(routeState.startMode==='current'){
+   stage='현재 위치 확인';
+   startPoint=await getCurrentPosition();
+   startPoint.id='__current__';
+   points=targets.slice();
+  }else if(routeState.startMode==='stop'){
+   startPoint=targets.find(x=>String(x.id)===String(routeState.startStopId));
+   if(!startPoint)throw new Error('출발지로 선택한 대상자를 찾을 수 없습니다.');
+   points=targets.filter(x=>String(x.id)!==String(startPoint.id));
+  }else{
+   // 자동: 각 선택지를 출발점으로 시험하여 전체 실제 도로거리가 가장 짧은 순서를 선택
+   if(targets.length===1){startPoint=targets[0];points=[];}
+   else{
+    stage='자동 출발지 비교';
+    let best=null;
+    for(const candidate of targets){
+     const rest=targets.filter(x=>x.id!==candidate.id);
+     const table=await osrmTable([candidate,...rest]);
+     const ordered=optimizeStopsByMatrix(rest,candidate,table);
+     const finalOrdered=[candidate,...ordered];
+     const r=await fetchOsrmRoute(finalOrdered);
+     if(!best || Number(r.distance)<best.distance)best={start:candidate,ordered,route:r};
+    }
+    startPoint=best.start;points=targets.filter(x=>x.id!==startPoint.id);
+    routeState.stops=routeState.stops.map(x=>targets.find(t=>t.id===x.id)||x);
+    routeState.selectedIds=targets.map(x=>x.id);
+    routeState.optimized=[startPoint.id,...best.ordered.map(x=>x.id)];
+    routeState.routeDistance=Math.round((Number(best.route.distance)||0)/10)/100;
+    routeState.routeDuration=Math.round((Number(best.route.duration)||0)/60);
+    routeState.routeGeometry=best.route.geometry&&Array.isArray(best.route.geometry.coordinates)?best.route.geometry:null;
+    routeState.routeStartMeta={type:'stop',stopId:startPoint.id,name:startPoint.name,lat:startPoint.lat,lon:startPoint.lon};
+    if(!routeState.routeGeometry)throw new Error('실제 도로경로 좌표를 받지 못했습니다.');
+    saveRoute();render();return;
+   }
+  }
+
+  if(targets.length===1 && routeState.startMode!=='current'){
+   routeState.optimized=targets.map(x=>x.id);routeState.routeDistance=0;routeState.routeDuration=0;routeState.routeGeometry=null;
+  }else{
+   stage='방문지 사이 실제 도로거리 계산';
+   const table=await osrmTable([startPoint,...points]);
+   stage='방문 순서 최적화';
+   const ordered=optimizeStopsByMatrix(points,startPoint,table);
+   const finalOrdered=[startPoint,...ordered];
+   stage='최종 실제 도로경로 생성';
+   const r=await fetchOsrmRoute(finalOrdered);
+   routeState.optimized=ordered.map(x=>x.id);
+   routeState.routeDistance=Math.round((Number(r.distance)||0)/10)/100;
+   routeState.routeDuration=Math.round((Number(r.duration)||0)/60);
+   routeState.routeGeometry=r.geometry&&Array.isArray(r.geometry.coordinates)?r.geometry:null;
+   if(!routeState.routeGeometry)throw new Error('실제 도로경로 좌표를 받지 못했습니다.');
+  }
+  routeState.stops=routeState.stops.map(x=>targets.find(t=>t.id===x.id)||x);
+  routeState.selectedIds=targets.map(x=>x.id);
+  if(routeState.startMode==='current')routeState.routeStartMeta={type:'current',name:'현재 위치',lat:startPoint.lat,lon:startPoint.lon};
+  else routeState.routeStartMeta={type:'stop',stopId:startPoint.id,name:startPoint.name,lat:startPoint.lat,lon:startPoint.lon};
+  saveRoute();render();
+ }catch(err){
+  console.error('[만남체크북 동선 오류]',stage,err);
+  alert('동선 계산 중 오류가 발생했습니다.\n\n단계: '+stage+'\n오류: '+(err?.message||String(err))+'\n\n네트워크 또는 주소 검색 서비스가 일시적으로 응답하지 않았을 수 있습니다.');
+ }finally{if(btn)btn.disabled=false}
+}
+function naverAppRouteUrl(from,to,waypoints=[]){
+ const params=[];
+ const add=(k,v)=>{if(v!==undefined&&v!==null&&String(v)!=='')params.push(k+'='+encodeURIComponent(String(v)))};
+ const valid=p=>p&&Number.isFinite(Number(p.lat))&&Number.isFinite(Number(p.lon));
+ if(valid(from)){
+  add('slat',Number(from.lat).toFixed(7));
+  add('slng',Number(from.lon).toFixed(7));
+  add('sname',from.name||from.address||'출발지');
+  // 공식 문서의 좌표 보정 파라미터도 함께 전달합니다.
+  add('secoords',Number(from.lat).toFixed(7)+','+Number(from.lon).toFixed(7));
+ }
+ if(!valid(to)) return '';
+ add('dlat',Number(to.lat).toFixed(7));
+ add('dlng',Number(to.lon).toFixed(7));
+ add('dname',to.name||to.address||'도착지');
+ add('decoords',Number(to.lat).toFixed(7)+','+Number(to.lon).toFixed(7));
+ waypoints.filter(valid).slice(0,5).forEach((w,i)=>{
+  const n=i+1;
+  add('v'+n+'lat',Number(w.lat).toFixed(7));
+  add('v'+n+'lng',Number(w.lon).toFixed(7));
+  add('v'+n+'name',w.name||w.address||('경유지 '+n));
+  add('v'+n+'ecoords',Number(w.lat).toFixed(7)+','+Number(w.lon).toFixed(7));
+ });
+ // 모바일 웹의 appname은 현재 웹페이지 URL을 사용합니다.
+ const appName=location.origin+location.pathname;
+ add('appname',appName);
+ return 'nmap://route/car?'+params.join('&');
+}
+function naverWebSearchUrl(x){
+ return 'https://map.naver.com/p/search/'+encodeURIComponent(x?.address||x?.name||'');
+}
+function openNaverUrl(appUrl,webUrl){
+ if(!appUrl){window.open(webUrl||'https://map.naver.com/','_blank');return;}
+ const isAndroid=/Android/i.test(navigator.userAgent);
+ const isIOS=/iPhone|iPad|iPod/i.test(navigator.userAgent);
+ // 모바일 웹에서는 공식 URL Scheme 호출 방식을 사용합니다.
+ // Android는 공식 문서의 Intent Scheme, iOS는 nmap:// 직접 호출입니다.
+ if(isAndroid){
+  const intent=appUrl.replace(/^nmap:\/\//,'intent://')+'#Intent;scheme=nmap;action=android.intent.action.VIEW;category=android.intent.category.BROWSABLE;package=com.nhn.android.nmap;end';
+  const a=document.createElement('a');
+  a.href=intent;
+  a.style.display='none';
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(()=>a.remove(),1000);
+  return;
+ }
+ if(isIOS){
+  let hidden=false;
+  const onHide=()=>{hidden=true;document.removeEventListener('visibilitychange',onHide)};
+  document.addEventListener('visibilitychange',onHide);
+  window.location.href=appUrl;
+  setTimeout(()=>{document.removeEventListener('visibilitychange',onHide);if(!hidden&&webUrl)window.location.href=webUrl},1800);
+  return;
+ }
+ window.open(webUrl||appUrl,'_blank','noopener');
+}
+function openNavigationToStop(x){
+ if(!x)return;
+ if(!Number.isFinite(Number(x.lat))||!Number.isFinite(Number(x.lon))){
+  window.open(naverWebSearchUrl(x),'_blank');
+  return;
+ }
+ const appUrl=naverAppRouteUrl(null,x,[]);
+ openNaverUrl(appUrl,naverWebSearchUrl(x));
+}
+function openNaverFullRoute(){
+ const ids=Array.isArray(routeState.optimized)?routeState.optimized:[];
+ const ordered=ids.map(id=>routeState.stops.find(x=>String(x.id)===String(id))).filter(x=>x&&Number.isFinite(Number(x.lat))&&Number.isFinite(Number(x.lon)));
+ if(!ordered.length){alert('방문지가 없습니다. 먼저 방문 동선을 최적화해 주세요.');return}
+ let from=routeState.routeStartMeta||null;
+ if(from&&from.type==='stop'){
+  const startStop=ordered.find(x=>String(x.id)===String(from.stopId));
+  if(startStop)from=startStop;
+ }
+ // 자동 출발지인 경우에는 최적화된 첫 방문지를 출발지로 삼지 않고,
+ // 저장된 출발점이 없으면 첫 방문지부터 다음 방문지로 연결합니다.
+ if(!from||!Number.isFinite(Number(from.lat))||!Number.isFinite(Number(from.lon))){
+  if(ordered.length===1){openNavigationToStop(ordered[0]);return}
+  from=ordered[0];
+ }
+ const remaining=ordered.filter(x=>String(x.id)!==String(from.id));
+ if(remaining.length===0){openNavigationToStop(ordered[0]);return}
+ const to=remaining[remaining.length-1];
+ const middle=remaining.slice(0,-1);
+ if(middle.length>5){alert('네이버지도 앱은 한 번에 최대 5개의 경유지를 전달할 수 있습니다.\n\n현재 선택된 방문지는 '+ordered.length+'곳입니다.');return}
+ // 현재 위치 출발은 네이버 지도 앱이 단말의 현재 위치를 사용하도록
+ // 출발지 좌표를 아예 전달하지 않습니다. (네이버 공식 URL Scheme 규격)
+ const appFrom = (routeState.routeStartMeta && routeState.routeStartMeta.type==='current') ? null : from;
+ const appUrl=naverAppRouteUrl(appFrom,to,middle);
+ const webUrl=naverWebRouteUrl(from,to,middle);
+ console.log('[만남체크북] NAVER route:',appUrl);
+ openNaverUrl(appUrl,webUrl);
+}
+function naverWebRouteUrl(from,to,waypoints=[]){
+ // PC 웹은 네이버 앱 URL Scheme의 경유지 파라미터를 그대로 받을 수 없으므로, 출발→도착의 웹 길찾기만 보조 제공합니다.
+ const f=from&&Number.isFinite(Number(from.lat))?Number(from.lon).toFixed(7)+','+Number(from.lat).toFixed(7)+','+encodeURIComponent(from.name||from.address||'출발지'):'';
+ const t=to&&Number.isFinite(Number(to.lat))?Number(to.lon).toFixed(7)+','+Number(to.lat).toFixed(7)+','+encodeURIComponent(to.name||to.address||'도착지'):'';
+ if(f&&t)return 'https://way-m.map.naver.com/end-quick-path/'+f+'/'+t+'/-/car/0?nscs=0';
+ return naverWebSearchUrl(to);
+}
+function drawRouteMap(){
+ const el=document.getElementById('routeMap');if(!el)return;
+ const ids=routeState.optimized||[];
+ const stops=ids.map(id=>routeState.stops.find(p=>String(p.id)===String(id))).filter(Boolean);
+ let start=routeState.routeStartMeta;
+ if(start&&start.type==='stop'){
+  const s=stops.find(x=>String(x.id)===String(start.stopId)); if(s)start=s;
+ }
+ const pts=[];
+ if(start&&Number.isFinite(Number(start.lat))&&Number.isFinite(Number(start.lon)))pts.push({...start,_isStart:true});
+ stops.forEach(x=>{if(!start||x.id!==start.id)pts.push(x)});
+ if(!pts.length){el.innerHTML='';return}
+ const lats=pts.map(p=>Number(p.lat)),lons=pts.map(p=>Number(p.lon));
+ const minLat=Math.min(...lats),maxLat=Math.max(...lats),minLon=Math.min(...lons),maxLon=Math.max(...lons);
+ const pad=28,w=1000,h=500,dx=(maxLon-minLon)||0.01,dy=(maxLat-minLat)||0.01;
+ const xy=p=>({x:pad+((Number(p.lon)-minLon)/dx)*(w-pad*2),y:h-pad-((Number(p.lat)-minLat)/dy)*(h-pad*2)});
+ const line=pts.map(x=>{const q=xy(x);return q.x.toFixed(1)+','+q.y.toFixed(1)}).join(' ');
+ const grid=[.2,.4,.6,.8].map(v=>`<line class="routeGrid" x1="${pad}" y1="${(h-pad*2)*v+pad}" x2="${w-pad}" y2="${(h-pad*2)*v+pad}"/><line class="routeGrid" x1="${(w-pad*2)*v+pad}" y1="${pad}" x2="${(w-pad*2)*v+pad}" y2="${h-pad}"/>`).join('');
+ const marks=pts.map((p,i)=>{const q=xy(p);const isStart=p._isStart;const label=isStart?'출발':((i+(start?0:1))+'. '+(p.name||'방문지'));return `<g><circle class="${isStart?'startDot':'routeDot'}" cx="${q.x}" cy="${q.y}" r="12"/>${!isStart?`<text class="routeNum" x="${q.x}" y="${q.y+4}" text-anchor="middle">${i+(start?0:1)}</text>`:''}<text class="routeLabel" x="${q.x}" y="${q.y-18}" text-anchor="middle">${esc(label).slice(0,20)}</text></g>`}).join('');
+ el.innerHTML=`<svg viewBox="0 0 ${w} ${h}" role="img" aria-label="선택된 방문 대상자의 대략적인 방문 순서 지도"><rect x="0" y="0" width="${w}" height="${h}" fill="#f7f8fb"/>${grid}<polyline class="routeLine" points="${line}"/>${marks}</svg>`;
+}
+function renderRoute(){
+ const stops=routeState.stops||[];
+ const selected=new Set((routeState.selectedIds||[]).map(String));
+ const selectedCount=stops.filter(x=>selected.has(String(x.id))).length;
+ const allSelected=stops.length>0&&selectedCount===stops.length;
+ const ordered=(routeState.optimized||[]).map(id=>stops.find(x=>String(x.id)===String(id))).filter(Boolean);
+ const startStopOptions=stops.filter(x=>selected.has(String(x.id))).map(x=>`<option value="${esc(x.id)}" ${routeState.startStopId===x.id?'selected':''}>${esc(x.name)} · ${esc(x.address)}</option>`).join('');
+ const selectedRows=stops.map((x,i)=>`<label class="routeSelect"><input type="checkbox" ${selected.has(String(x.id))?'checked':''} onchange="routeToggleSelected('${String(x.id).replace(/'/g,"\\'")}',this.checked)"><span class="routeSelectMain"><span class="routeSelectName">${i+1}. ${esc(x.name)}</span><span class="routeSelectAddr">${esc(x.address)}</span></span></label>`).join('');
+ const routeList=ordered.length?ordered:stops.filter(x=>selected.has(String(x.id)));
+ main.innerHTML=`<div class="card"><b>🚗 방문 동선</b><p class="muted">엑셀에서 방문 후보를 불러온 뒤, 오늘 실제 방문할 대상자만 선택하세요.</p>
+ <input id="routeExcelFile" type="file" accept=".xlsm,.xlsx,.xls">
+ <div class="routeActions" style="margin-top:8px"><button class="primary" onclick="routeImportExcel()">📥 Excel 주소 불러오기</button><button onclick="routeClear()">초기화</button></div></div>
+ ${stops.length?`<div class="card"><div class="routeTop"><b>방문 대상자 선택</b><button class="small" onclick="routeToggleAll()">${allSelected?'☐ 모두 해제':'☑ 모두 선택'}</button></div><div class="muted" style="margin-top:5px">${selectedCount}명 선택 / 전체 ${stops.length}명</div><div style="margin-top:5px">${selectedRows}</div></div>
+ <div class="card"><b>출발지</b><div class="routeStartBox" style="margin-top:8px"><label style="display:flex;gap:9px;align-items:center;margin-bottom:9px"><input type="radio" name="routeStartMode" value="auto" ${routeState.startMode==='auto'?'checked':''} onchange="routeStartModeChanged(this.value)"> 자동으로 가장 효율적인 출발지 선택</label><label style="display:flex;gap:9px;align-items:center;margin-bottom:9px"><input type="radio" name="routeStartMode" value="current" ${routeState.startMode==='current'?'checked':''} onchange="routeStartModeChanged(this.value)"> 📍 현재 위치</label><label style="display:flex;gap:9px;align-items:center"><input type="radio" name="routeStartMode" value="stop" ${routeState.startMode==='stop'?'checked':''} onchange="routeStartModeChanged(this.value)"> 🏠 선택한 방문지에서 출발</label>${routeState.startMode==='stop'?`<select onchange="routeStartStopChanged(this.value)" style="margin-top:9px"><option value="">출발할 방문지 선택</option>${startStopOptions}</select>`:''}</div><div class="routeHint" style="margin-top:8px">현재 위치를 선택하면 휴대폰의 위치 권한을 통해 출발점을 확인합니다.</div><button id="routeOptimizeBtn" class="primary" style="width:100%;margin-top:10px" onclick="optimizeRoute()">🚗 선택한 방문지 최적화</button>${routeState.optimized.length?'<button class="primary" style="width:100%;margin-top:8px" onclick="openNaverFullRoute()">🧭 네이버지도에서 실제 이동경로 보기</button>':''}</div>`:''}
+ ${routeList.length?`<div class="card"><b>추천 방문 순서 · ${routeList.length}곳</b><div style="margin-top:6px">${routeList.map((x,i)=>`<div class="routeItem"><div class="routeNum">${i+1}</div><div><b>${esc(x.name)}</b><div class="routeAddr">${esc(x.address)}</div></div><button class="small" title="네이버지도에서 길찾기" onclick="openNavigationToStopById('${String(x.id).replace(/'/g,"\\'")}')">🧭</button></div>`).join('')}</div></div>`:''}
+ ${routeState.routeGeometry?`<div class="card"><b>한눈에 보는 방문 동선</b><div class="routeSummary" style="margin-top:8px">출발 <b>${esc(routeState.routeStartMeta?.name||'현재 위치')}</b><br>총 거리 <b>${routeState.routeDistance} km</b> · 예상 주행시간 <b>${routeState.routeDuration}분</b><br><span class="muted">선택한 대상자만 실제 자동차 도로망을 기준으로 순서를 계산했습니다. 지도는 방문 위치와 순서를 쉽게 파악하기 위한 간단한 미리보기입니다.</span></div><div id="routeMap" class="routeMap"></div></div>`:''}
+ ${stops.length?'<div class="routeHint">※ 주소를 좌표로 변환하기 위해 입력한 주소가 OpenStreetMap의 Nominatim 검색 서비스로 전송됩니다. 민감한 개인정보가 포함된 주소라면 사용 전에 기관의 개인정보 보호 기준을 확인하세요.</div>':''}
+ `;
+ if(routeState.routeGeometry)setTimeout(drawRouteMap,30);
+}
+
 function renderManage(){
  const trash=Array.isArray(state.trash)?state.trash:[];
  let trashHtml='';
