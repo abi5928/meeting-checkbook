@@ -92,7 +92,7 @@ nav button{flex:1;background:none;font-size:11px;padding:7px 2px;color:#6d7788}n
  <div id="routeModeHelp" class="warn">가까운 순서·먼 순서는 현재 위치와 대상자 주소의 직선거리를 계산합니다. 선택한 순서는 대상자를 체크한 순서 그대로 사용합니다.</div>
  <div id="routePeople"></div>
  <div id="routeResultPanel" class="route-result-panel">
-  <div class="route-result-title">🚗 만들어진 방문순서</div>
+  <div class="route-result-title">🚗 만들어진 방문순서</div><div class="muted" style="margin-bottom:8px">↑ ↓ 버튼으로 방문순서를 직접 변경할 수 있습니다.</div>
   <div id="routeResultLocation" class="route-result-sub"></div>
   <div id="routeResult"></div>
  </div>
@@ -492,6 +492,20 @@ function setRouteMode(mode){
   if(locBtn)locBtn.style.display='block';
  }
 }
+function renderRoutePeopleList(){
+ const box=document.getElementById('routePeople');
+ if(!box)return;
+ const selected=new Set(routeSelection.map(String));
+ const selectedPeople=routeSelection.map(id=>state.people.find(p=>String(p.id)===String(id))).filter(Boolean);
+ const unselectedPeople=state.people.filter(p=>!selected.has(String(p.id)));
+ const people=[...selectedPeople,...unselectedPeople];
+ box.innerHTML=people.map(p=>{
+  const id=String(p.id);
+  const idx=routeSelection.indexOf(id);
+  const order=idx>=0?String(idx+1):'–';
+  return `<label class="route-person"><input type="checkbox" data-route-id="${esc(id)}" ${idx>=0?'checked':''} onchange="toggleRoutePerson('${id.replace(/'/g,"\\'")}',this.checked)"><span class="route-order" id="routeOrder_${esc(id)}">${order}</span><span><b>${esc(p.name)}</b><span class="route-address">${birth6(p.birth)}${p.address?' · '+esc(p.address):' · 주소 없음'}</span></span></label>`;
+ }).join('');
+}
 function openRoute(){
  if(!state.people.length){alert('동선을 만들 대상자가 없습니다. 먼저 명단을 추가하세요.');return}
  routeSelection=[];
@@ -500,8 +514,7 @@ function openRoute(){
  routeMode='near';
  const savedPanel=document.getElementById('routeResultPanel');
  if(savedPanel)savedPanel.classList.remove('show');
- const box=document.getElementById('routePeople');
- box.innerHTML=state.people.map((p,i)=>`<label class="route-person"><input type="checkbox" data-route-id="${esc(String(p.id))}" onchange="toggleRoutePerson('${String(p.id).replace(/'/g,"\\'")}',this.checked)"><span class="route-order" id="routeOrder_${esc(String(p.id))}">–</span><span><b>${esc(p.name)}</b><span class="route-address">${birth6(p.birth)}${p.address?' · '+esc(p.address):' · 주소 없음'}</span></span></label>`).join('');
+ renderRoutePeopleList();
  const radio=document.querySelector('input[name="routeMode"][value="near"]');if(radio)radio.checked=true;
  document.getElementById('routeLocation').textContent='현재 위치를 확인해 주세요.';
  document.getElementById('routeLocationBtn').style.display='block';
@@ -512,17 +525,16 @@ function closeRoute(){document.getElementById('routeModal').style.display='none'
 function toggleRoutePerson(id,checked){
  id=String(id);
  if(checked){if(!routeSelection.includes(id))routeSelection.push(id)}else{routeSelection=routeSelection.filter(x=>x!==id)}
- drawRouteOrder();
+ renderRoutePeopleList();
+ drawRouteResult();
 }
-function drawRouteOrder(){
- state.people.forEach(p=>{const el=document.getElementById('routeOrder_'+String(p.id));if(el)el.textContent='–'});
- routeSelection.forEach((id,i)=>{const el=document.getElementById('routeOrder_'+id);if(el)el.textContent=String(i+1)});
-}
+function drawRouteOrder(){renderRoutePeopleList();}
 function moveRoute(id,dir){
  const i=routeSelection.indexOf(String(id));if(i<0)return;
  const j=i+dir;if(j<0||j>=routeSelection.length)return;
  [routeSelection[i],routeSelection[j]]=[routeSelection[j],routeSelection[i]];
  saveCurrentRoute();
+ renderRoutePeopleList();
  drawRouteResult();
 }
 function getRoutePeople(){return routeSelection.map(id=>state.people.find(p=>String(p.id)===String(id))).filter(Boolean)}
@@ -558,9 +570,7 @@ function openSavedRoute(){
  const radios=document.querySelectorAll('input[name="routeMode"]');
  radios.forEach(el=>el.checked=(el.value===routeMode));
  setRouteMode(routeMode);
- const box=document.getElementById('routePeople');
- state.people.forEach(p=>{const el=box?.querySelector(`[data-route-id="${CSS.escape(String(p.id))}"]`);if(el)el.checked=routeSelection.includes(String(p.id));});
- drawRouteOrder();
+ renderRoutePeopleList();
  document.getElementById('routeResultLocation').textContent=routeModeLabel(routeMode);
  drawRouteResult();
  document.getElementById('routeResultPanel').classList.add('show');
@@ -606,7 +616,7 @@ async function buildRouteList(){
   rows.sort((a,b)=>routeMode==='near'?(a.km-b.km):(b.km-a.km));
   routeSelection=rows.map(x=>String(x.p.id));
   saveCurrentRoute();
-  drawRouteOrder();
+  renderRoutePeopleList();
   document.getElementById('routeResultLocation').textContent=routeModeLabel(routeMode);
   drawRouteResult();
   document.getElementById('routeResultPanel').classList.add('show');
