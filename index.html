@@ -26,7 +26,7 @@ button{border:0;border-radius:11px;padding:10px 12px;font-weight:750;color:#1822
 .warn{background:#fff7e6;color:#946200;padding:10px;border-radius:10px;font-size:13px;margin:8px 0}.ok{background:#edf8f1;color:#167044;padding:10px;border-radius:10px;font-size:13px;margin:8px 0}
 nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:min(560px,100%);background:#fff;border-top:1px solid #e6eaf1;display:flex;padding:7px 3px calc(7px + env(safe-area-inset-bottom));z-index:6}
 nav button{flex:1;background:none;font-size:11px;padding:7px 2px;color:#6d7788}nav button.active{color:#4f7cff;font-weight:800}
-.modal{position:fixed;inset:0;background:#0008;display:none;align-items:flex-end;z-index:20}.sheet{background:#fff;width:min(560px,100%);margin:auto;border-radius:22px 22px 0 0;padding:20px}.result{padding:13px;border:1px solid #e2e7f0;border-radius:12px;margin:8px 0}.close{width:100%;margin-top:10px}.record{padding:12px 0;border-bottom:1px solid #edf0f5}.toast{position:fixed;left:50%;bottom:82px;transform:translateX(-50%);background:#182235;color:#fff;padding:10px 16px;border-radius:99px;display:none;z-index:30;white-space:nowrap}
+.modal{position:fixed;inset:0;background:#0008;display:none;align-items:flex-end;z-index:20}.sheet{background:#fff;width:min(560px,100%);margin:auto;border-radius:22px 22px 0 0;padding:20px;max-height:92vh;overflow-y:auto;-webkit-overflow-scrolling:touch}.result{padding:13px;border:1px solid #e2e7f0;border-radius:12px;margin:8px 0}.close{width:100%;margin-top:10px}.record{padding:12px 0;border-bottom:1px solid #edf0f5}.toast{position:fixed;left:50%;bottom:82px;transform:translateX(-50%);background:#182235;color:#fff;padding:10px 16px;border-radius:99px;display:none;z-index:30;white-space:nowrap}
 .small{font-size:12px;padding:7px 9px}.danger{background:#fff0f0;color:#b42318}
 .route-person{display:flex;align-items:center;gap:9px;padding:10px 4px;border-bottom:1px solid #edf0f5}.route-person input{width:22px;height:22px;flex:none}.route-order{display:inline-flex;width:26px;height:26px;border-radius:50%;align-items:center;justify-content:center;background:#eef2f8;font-weight:800;font-size:12px}.route-result{display:flex;gap:10px;align-items:flex-start;padding:12px 4px;border-bottom:1px solid #edf0f5}.route-number{width:30px;height:30px;border-radius:50%;background:#182235;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;flex:none}.route-updown{display:flex;gap:5px;margin-left:auto}.route-updown button{padding:6px 8px}.route-address{display:block;color:#718096;font-size:12px;margin-top:3px}.route-mode{display:grid;grid-template-columns:1fr;gap:7px;margin:10px 0}.route-mode label{display:flex;align-items:center;gap:9px;padding:11px 12px;border:1px solid #dbe2ef;border-radius:12px;background:#f8fafc;font-weight:700}.route-mode input{width:20px;height:20px;margin:0}.route-mode .hint{font-size:11px;font-weight:500;color:#718096;margin-left:auto}.route-result-panel{display:none;margin-top:12px;padding:13px;border:2px solid #dbe3f1;border-radius:16px;background:#f8faff}.route-result-panel.show{display:block}.route-result-title{font-size:16px;font-weight:800;margin-bottom:5px}.route-result-sub{font-size:12px;color:#718096;margin-bottom:8px}
 </style>
@@ -98,7 +98,7 @@ nav button{flex:1;background:none;font-size:11px;padding:7px 2px;color:#6d7788}n
  </div>
  <div class="actions" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px">
   <button class="primary" onclick="buildRouteList()">방문순서 만들기</button>
-  <button onclick="closeRoute()">취소</button>
+  <button id="routeCloseBtn" onclick="closeRoute()">취소</button>
  </div>
  </div></div>
 
@@ -506,12 +506,14 @@ function renderRoutePeopleList(){
   return `<label class="route-person"><input type="checkbox" data-route-id="${esc(id)}" ${idx>=0?'checked':''} onchange="toggleRoutePerson('${id.replace(/'/g,"\\'")}',this.checked)"><span class="route-order" id="routeOrder_${esc(id)}">${order}</span><span><b>${esc(p.name)}</b><span class="route-address">${birth6(p.birth)}${p.address?' · '+esc(p.address):' · 주소 없음'}</span></span></label>`;
  }).join('');
 }
+function showRouteSuccessToast(){toast('✓ 순서대로 정렬되었습니다.');}
 function openRoute(){
  if(!state.people.length){alert('동선을 만들 대상자가 없습니다. 먼저 명단을 추가하세요.');return}
  routeSelection=[];
  routeCoords=null;
  routeDistances={};
  routeMode='near';
+ const closeBtn=document.getElementById('routeCloseBtn');if(closeBtn)closeBtn.textContent='취소';
  const savedPanel=document.getElementById('routeResultPanel');
  if(savedPanel)savedPanel.classList.remove('show');
  renderRoutePeopleList();
@@ -593,6 +595,8 @@ async function buildRouteList(){
   document.getElementById('routeResultLocation').textContent='☑️ 선택한 순서 그대로 표시했습니다.';
   drawRouteResult();
   document.getElementById('routeResultPanel').classList.add('show');
+  const closeBtn=document.getElementById('routeCloseBtn');if(closeBtn)closeBtn.textContent='동선 완료';
+  showRouteSuccessToast();
   return;
  }
  if(!routeCoords){alert('먼저 📍 현재 위치 확인을 눌러 출발 위치를 확인하세요.');return}
@@ -620,6 +624,8 @@ async function buildRouteList(){
   document.getElementById('routeResultLocation').textContent=routeModeLabel(routeMode);
   drawRouteResult();
   document.getElementById('routeResultPanel').classList.add('show');
+  const closeBtn=document.getElementById('routeCloseBtn');if(closeBtn)closeBtn.textContent='동선 완료';
+  showRouteSuccessToast();
  }catch(err){
   alert('동선 계산을 완료하지 못했습니다.\n\n'+err.message+'\n\n주소가 정확한지 확인한 뒤 다시 시도하세요.');
  }finally{
