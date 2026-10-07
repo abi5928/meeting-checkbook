@@ -477,6 +477,27 @@ async function geocodeAddress(address){
  cache[key]=coord;saveGeocodeCache(cache);
  return coord;
 }
+function openNaverCarRouteById(id){
+ const p=state.people.find(x=>String(x.id)===String(id));
+ if(!p||!String(p.address||'').trim()){alert('다음 방문자의 주소가 없습니다. 주소를 입력한 뒤 다시 시도하세요.');return}
+ const appName=encodeURIComponent('https://meeting-checkbook.vercel.app/');
+ (async()=>{
+  try{
+   const coord=await geocodeAddress(p.address);
+   if(!coord){alert(p.name+'님의 주소를 지도 좌표로 찾지 못했습니다.\n주소: '+p.address);return}
+   const params='dlat='+encodeURIComponent(coord.lat)+'&dlng='+encodeURIComponent(coord.lon)+'&dname='+encodeURIComponent(p.name+' · '+p.address)+'&appname='+appName;
+   const nmap='nmap://route/car?'+params;
+   const intent='intent://route/car?'+params+'#Intent;scheme=nmap;action=android.intent.action.VIEW;category=android.intent.category.BROWSABLE;package=com.nhn.android.nmap;end';
+   const ua=navigator.userAgent;
+   if(/Android/i.test(ua)) location.href=intent;
+   else if(/iPhone|iPad|iPod/i.test(ua)){
+    const clickedAt=Date.now();
+    location.href=nmap;
+    setTimeout(()=>{if(Date.now()-clickedAt<2000) location.href='https://apps.apple.com/kr/app/id311867728';},1500);
+   }else window.open('https://map.naver.com/p/search/'+encodeURIComponent(p.address),'_blank');
+  }catch(err){alert('네이버지도 연결 준비 중 오류가 발생했습니다.\n\n'+err.message)}
+ })();
+}
 function setRouteMode(mode){
  routeMode=mode||'near';
  const loc=document.getElementById('routeLocation');
@@ -573,7 +594,7 @@ function renderSavedRouteCard(){
  const people=rt.ids.map(id=>state.people.find(p=>String(p.id)===String(id))).filter(Boolean);
  if(!people.length)return '';
  const next=people.findIndex(p=>!routeIsChecked(p.id));
- return `<div class="card" style="background:#f8faff;border:1px solid #dfe7f5;margin-bottom:12px"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><div><b>🚗 현재 동선</b><div class="muted" style="margin-top:4px">${esc(routeModeLabel(rt.mode))}</div></div><button class="small" onclick="openSavedRoute()">동선 보기</button></div><div style="margin-top:10px">${people.map((p,i)=>{const done=routeIsChecked(p.id);const isNext=!done&&i===next;return `<div style="display:flex;gap:8px;align-items:center;padding:7px 0;border-top:1px solid #e8edf5"><span class="route-number" style="width:26px;height:26px;font-size:12px">${i+1}</span><div style="min-width:0;flex:1"><b class="${done?'route-done':''}">${done?'✓ ':''}${esc(p.name)}${isNext?' · 다음 방문':''}</b><span class="route-address">${rt.distances&&rt.distances[String(p.id)]!=null?('약 '+Number(rt.distances[String(p.id)]).toFixed(2)+' km · '):''}${esc(p.address||'주소 없음')}</span></div></div>`}).join('')}</div></div>`;
+ return `<div class="card" style="background:#f8faff;border:1px solid #dfe7f5;margin-bottom:12px"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><div><b>🚗 현재 동선</b><div class="muted" style="margin-top:4px">${esc(routeModeLabel(rt.mode))}</div></div><button class="small" onclick="openSavedRoute()">동선 보기</button></div><div style="margin-top:10px">${people.map((p,i)=>{const done=routeIsChecked(p.id);const isNext=!done&&i===next;return `<div style="display:flex;gap:8px;align-items:center;padding:7px 0;border-top:1px solid #e8edf5"><span class="route-number" style="width:26px;height:26px;font-size:12px">${i+1}</span><div style="min-width:0;flex:1"><b class="${done?'route-done':''}">${done?'✓ ':''}${esc(p.name)}${isNext?' · 다음 방문':''}</b><span class="route-address">${rt.distances&&rt.distances[String(p.id)]!=null?('약 '+Number(rt.distances[String(p.id)]).toFixed(2)+' km · '):''}${esc(p.address||'주소 없음')}</span></div>${isNext?`<button class="small primary" onclick="openNaverCarRouteById('${String(p.id).replace(/'/g,"\'")}')">🧭 길찾기</button>`:''}</div>`}).join('')}</div></div>`;
 }
 function openSavedRoute(){
  const r=activeRecordId?state.records.find(x=>x.id===activeRecordId):null;
@@ -652,7 +673,7 @@ function drawRouteResult(){
  const people=getRoutePeople();
  if(!people.length){box.innerHTML='<div class="muted">선택한 대상자가 없습니다.</div>';return}
  const next=people.findIndex(p=>!routeIsChecked(p.id));
- box.innerHTML=people.map((p,i)=>{const done=routeIsChecked(p.id);const isNext=!done&&i===next;return `<div class="route-result"><div class="route-number">${i+1}</div><div style="min-width:0;flex:1"><b class="${done?'route-done':''}">${done?'✓ ':''}${esc(p.name)}${isNext?' · 다음 방문':''}</b><span class="route-address">${routeDistances[String(p.id)]!=null?('약 '+routeDistances[String(p.id)].toFixed(2)+' km · '):''}${esc(p.phone||'')}${p.address?' · '+esc(p.address):'주소 없음'}</span></div><div class="route-updown"><button onclick="moveRoute('${String(p.id).replace(/'/g,"\'")}',-1)" aria-label="위로">↑</button><button onclick="moveRoute('${String(p.id).replace(/'/g,"\'")}',1)" aria-label="아래로">↓</button></div></div>`}).join('');
+ box.innerHTML=people.map((p,i)=>{const done=routeIsChecked(p.id);const isNext=!done&&i===next;return `<div class="route-result"><div class="route-number">${i+1}</div><div style="min-width:0;flex:1"><b class="${done?'route-done':''}">${done?'✓ ':''}${esc(p.name)}${isNext?' · 다음 방문':''}</b><span class="route-address">${routeDistances[String(p.id)]!=null?('약 '+routeDistances[String(p.id)].toFixed(2)+' km · '):''}${esc(p.phone||'')}${p.address?' · '+esc(p.address):'주소 없음'}</span></div>${isNext?`<button class="small primary" onclick="openNaverCarRouteById('${String(p.id).replace(/'/g,"\'")}')">🧭 길찾기</button>`:''}<div class="route-updown"><button onclick="moveRoute('${String(p.id).replace(/'/g,"\'")}',-1)" aria-label="위로">↑</button><button onclick="moveRoute('${String(p.id).replace(/'/g,"\'")}',1)" aria-label="아래로">↓</button></div></div>`}).join('');
 }
 document.getElementById('routeLocationBtn').onclick=requestRouteLocation;
 
