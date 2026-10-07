@@ -17,30 +17,23 @@ export default async function handler(req, res) {
     // OSRM의 GET URL에 좌표와 쿼리스트링을 이어 붙이는 방식은
     // 일부 환경에서 InvalidUrl / InvalidQuery(400)를 발생시킬 수 있습니다.
     // route/table은 공식 POST API를 사용해 좌표와 옵션을 JSON body로 전달합니다.
-    async function callOsrmPost(kind, body) {
-      const url = `https://router.project-osrm.org/${kind}/v1/driving`;
-      const upstream = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          'User-Agent': 'meeting-checkbook/25.0'
-        },
-        body: JSON.stringify(body)
+    async function callOsrmGet(kind, queryPoints, options={}) {
+      const coordText = queryPoints.map(([lon,lat]) => `${lon.toFixed(7)},${lat.toFixed(7)}`).join(';');
+      const url = new URL(`https://router.project-osrm.org/${kind}/v1/driving/${coordText}`);
+      Object.entries(options).forEach(([k,v]) => url.searchParams.set(k,String(v)));
+      const upstream = await fetch(url.toString(), {
+        headers: { 'Accept': 'application/json', 'User-Agent': 'meeting-checkbook/25.1' }
       });
       const text = await upstream.text();
       let data;
       try { data = JSON.parse(text); }
       catch { data = { code: 'UpstreamError', message: text.slice(0, 500) }; }
-      return { upstream, data };
+      return { upstream, data, url: url.toString() };
     }
 
     if (service === 'table') {
       // 1차: 공식 POST Table API
-      const primary = await callOsrmPost('table', {
-        coordinates,
-        annotations: 'duration,distance'
-      });
+      const primary = await callOsrmGet('table', coordinates, { annotations: 'distance,duration' });
       if (primary.upstream.ok && primary.data.code === 'Ok' &&
           Array.isArray(primary.data.distances) && Array.isArray(primary.data.durations)) {
         return res.status(200).json(primary.data);
@@ -55,8 +48,7 @@ export default async function handler(req, res) {
       for (let i=0; i<n; i++) {
         for (let j=0; j<n; j++) {
           if (i===j) continue;
-          const r = await callOsrmPost('route', {
-            coordinates: [coordinates[i], coordinates[j]],
+          const r = await callOsrmGet('route', [coordinates[i], coordinates[j]], {
             overview: false,
             steps: false
           });
@@ -87,8 +79,7 @@ export default async function handler(req, res) {
     }
 
     if (service === 'route') {
-      const result = await callOsrmPost('route', {
-        coordinates,
+      const result = await callOsrmGet('route', coordinates, {
         overview: 'full',
         geometries: 'geojson',
         steps: false
@@ -98,21 +89,11 @@ export default async function handler(req, res) {
 
     // 현재 앱에서는 trip을 사용하지 않지만, 요청이 들어오면 POST 대신
     // 지원되는 GET 조합으로 처리합니다.
-    const qs = new URLSearchParams({
-      roundtrip: 'false',
-      source: 'first',
-      destination: 'last',
-      overview: 'full',
-      geometries: 'geojson',
-      steps: 'false'
+    const result = await callOsrmGet('trip', coordinates, {
+      roundtrip: 'false', source: 'first', destination: 'last',
+      overview: 'full', geometries: 'geojson', steps: 'false'
     });
-    const coordinateString = coordinates.map(([lon,lat]) => `${lon},${lat}`).join(';');
-    const url = `https://router.project-osrm.org/trip/v1/driving/${coordinateString}?${qs.toString()}`;
-    const upstream = await fetch(url, { headers:{'Accept':'application/json','User-Agent':'meeting-checkbook/25.0'} });
-    const text = await upstream.text();
-    let data;
-    try { data = JSON.parse(text); } catch { data = {code:'UpstreamError',message:text.slice(0,500)}; }
-    return res.status(upstream.ok ? 200 : upstream.status).json(data);
+    return res.status(result.upstream.ok ? 200 : result.upstream.status).json(result.data);
   } catch (e) {
     return res.status(500).json({ code:'ProxyError', message:e?.message||String(e) });
   }
