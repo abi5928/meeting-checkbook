@@ -703,26 +703,18 @@ async function geocodeRouteAddress(address){
  return {lat:Number(data[0].lat),lon:Number(data[0].lon),display:data[0].display_name||address};
 }
 function distKm(a,b){const R=6371,rad=Math.PI/180;const dLat=(b.lat-a.lat)*rad,dLon=(b.lon-a.lon)*rad;const x=Math.sin(dLat/2)**2+Math.cos(a.lat*rad)*Math.cos(b.lat*rad)*Math.sin(dLon/2)**2;return 2*R*Math.asin(Math.sqrt(x));}
-async function osrmTable(points){
- // OSRM table 엔드포인트가 환경에 따라 불안정할 수 있어, 실제 도로 경로를 이용한 1:1 거리/시간으로 구성합니다.
- const n=points.length;
- const distances=Array.from({length:n},()=>Array(n).fill(0));
- const durations=Array.from({length:n},()=>Array(n).fill(0));
- for(let i=0;i<n;i++){
-  for(let j=0;j<n;j++){
-   if(i===j)continue;
-   const a=points[i],b=points[j];
-   const coords=Number(a.lon)+','+Number(a.lat)+';'+Number(b.lon)+','+Number(b.lat);
-   const url='https://router.project-osrm.org/route/v1/driving/'+coords+'?overview=false&steps=false';
-   const res=await fetch(url);
-   if(!res.ok)throw new Error('도로 경로 계산 서비스 오류 ('+res.status+')');
-   const data=await res.json();
-   if(data.code!=='Ok'||!Array.isArray(data.routes)||!data.routes.length)throw new Error('도로 경로를 계산할 수 없습니다.');
-   distances[i][j]=Number(data.routes[0].distance)||Infinity;
-   durations[i][j]=Number(data.routes[0].duration)||Infinity;
-  }
- }
- return {distances,durations};
+async function osrmTrip(points){
+ const res=await fetch('/api/osrm',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({service:'trip',points})});
+ if(!res.ok)throw new Error('도로 경로 계산 서비스 오류 ('+res.status+')');
+ const data=await res.json();
+ if(data.code!=='Ok'||!Array.isArray(data.trips)||!data.trips.length)throw new Error(data.message||'도로 경로를 계산할 수 없습니다.');
+ const orderedWaypoints=(data.waypoints||[]).slice().sort((a,b)=>Number(a.waypoint_index)-Number(b.waypoint_index));
+ if(orderedWaypoints.length!==points.length)throw new Error('방문 순서 정보를 정상적으로 받지 못했습니다.');
+ const inputWaypoints=Array.isArray(data.waypoints)?data.waypoints:[];
+ const ordered=orderedWaypoints.map(w=>points[inputWaypoints.indexOf(w)]).filter(Boolean);
+ // OSRM의 waypoints 배열은 입력 순서이고 waypoint_index가 여행 순서를 가리킵니다.
+ if(ordered.length!==points.length)throw new Error('방문 순서를 구성하지 못했습니다.');
+ return {route:data.trips[0],ordered};
 }
 function optimizeStopsByMatrix(points,start,table){
  const all=[start,...points];
@@ -757,10 +749,10 @@ function optimizeStopsByMatrix(points,start,table){
  return out;
 }
 async function fetchOsrmRoute(ordered){
- const coords=ordered.map(p=>Number(p.lon)+','+Number(p.lat)).join(';');
- const url='https://router.project-osrm.org/route/v1/driving/'+coords+'?overview=full&geometries=geojson&steps=false';
- const res=await fetch(url);if(!res.ok)throw new Error('실제 도로 경로를 가져오지 못했습니다.');
- const data=await res.json();if(data.code!=='Ok'||!data.routes?.length)throw new Error('실제 도로 경로가 없습니다.');
+ const res=await fetch('/api/osrm',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({service:'route',points:ordered})});
+ if(!res.ok)throw new Error('실제 도로 경로를 가져오지 못했습니다. ('+res.status+')');
+ const data=await res.json();
+ if(data.code!=='Ok'||!data.routes?.length)throw new Error(data.message||'실제 도로 경로가 없습니다.');
  return data.routes[0];
 }
 async function optimizeRoute(){
@@ -781,69 +773,35 @@ async function optimizeRoute(){
   }
   if(failed.length){alert('주소를 찾지 못한 방문지가 '+failed.length+'곳 있습니다.\n\n'+failed.map(x=>'• '+x.name+' — '+x.address).join('\n')+'\n\n주소를 확인한 뒤 다시 실행하세요.');return}
   if(!targets.every(x=>Number.isFinite(Number(x.lat))&&Number.isFinite(Number(x.lon))))throw new Error('좌표가 없는 방문지가 있습니다.');
-
   let startPoint=null,points=[];
   if(routeState.startMode==='current'){
-   stage='현재 위치 확인';
-   startPoint=await getCurrentPosition();
-   startPoint.id='__current__';
-   points=targets.slice();
+   stage='현재 위치 확인'; startPoint=await getCurrentPosition(); startPoint.id='__current__'; points=targets.slice();
   }else if(routeState.startMode==='stop'){
-   startPoint=targets.find(x=>String(x.id)===String(routeState.startStopId));
-   if(!startPoint)throw new Error('출발지로 선택한 대상자를 찾을 수 없습니다.');
+   startPoint=targets.find(x=>String(x.id)===String(routeState.startStopId)); if(!startPoint)throw new Error('출발지로 선택한 대상자를 찾을 수 없습니다.');
    points=targets.filter(x=>String(x.id)!==String(startPoint.id));
   }else{
-   // 자동: 각 선택지를 출발점으로 시험하여 전체 실제 도로거리가 가장 짧은 순서를 선택
    if(targets.length===1){startPoint=targets[0];points=[];}
    else{
-    stage='자동 출발지 비교';
-    let best=null;
+    stage='자동 출발지 비교'; let best=null;
     for(const candidate of targets){
-     const rest=targets.filter(x=>x.id!==candidate.id);
-     const table=await osrmTable([candidate,...rest]);
-     const ordered=optimizeStopsByMatrix(rest,candidate,table);
-     const finalOrdered=[candidate,...ordered];
-     const r=await fetchOsrmRoute(finalOrdered);
-     if(!best || Number(r.distance)<best.distance)best={start:candidate,ordered,route:r};
+     const rest=targets.filter(x=>x.id!==candidate.id); const trip=await osrmTrip([candidate,...rest]); const ordered=trip.ordered.slice(1); const finalOrdered=[candidate,...ordered]; const r=await fetchOsrmRoute(finalOrdered);
+     if(!best||Number(r.distance)<best.distance)best={start:candidate,ordered,route:r};
     }
-    startPoint=best.start;points=targets.filter(x=>x.id!==startPoint.id);
-    routeState.stops=routeState.stops.map(x=>targets.find(t=>t.id===x.id)||x);
-    routeState.selectedIds=targets.map(x=>x.id);
-    routeState.optimized=[startPoint.id,...best.ordered.map(x=>x.id)];
-    routeState.routeDistance=Math.round((Number(best.route.distance)||0)/10)/100;
-    routeState.routeDuration=Math.round((Number(best.route.duration)||0)/60);
-    routeState.routeGeometry=best.route.geometry&&Array.isArray(best.route.geometry.coordinates)?best.route.geometry:null;
-    routeState.routeStartMeta={type:'stop',stopId:startPoint.id,name:startPoint.name,lat:startPoint.lat,lon:startPoint.lon};
-    if(!routeState.routeGeometry)throw new Error('실제 도로경로 좌표를 받지 못했습니다.');
-    saveRoute();render();return;
+    startPoint=best.start; points=targets.filter(x=>x.id!==startPoint.id); routeState.optimized=best.ordered.map(x=>x.id); routeState.routeDistance=Math.round((Number(best.route.distance)||0)/10)/100; routeState.routeDuration=Math.round((Number(best.route.duration)||0)/60); routeState.routeGeometry=best.route.geometry?.coordinates?best.route.geometry:null; routeState.routeStartMeta={type:'stop',stopId:startPoint.id,name:startPoint.name,lat:startPoint.lat,lon:startPoint.lon};
+    if(!routeState.routeGeometry)throw new Error('실제 도로경로 좌표를 받지 못했습니다.'); saveRoute();render();return;
    }
   }
-
-  if(targets.length===1 && routeState.startMode!=='current'){
-   routeState.optimized=targets.map(x=>x.id);routeState.routeDistance=0;routeState.routeDuration=0;routeState.routeGeometry=null;
+  if(targets.length===1&&routeState.startMode!=='current'){
+   routeState.optimized=targets.map(x=>x.id); routeState.routeDistance=0; routeState.routeDuration=0; routeState.routeGeometry=null;
   }else{
-   stage='방문지 사이 실제 도로거리 계산';
-   const table=await osrmTable([startPoint,...points]);
-   stage='방문 순서 최적화';
-   const ordered=optimizeStopsByMatrix(points,startPoint,table);
-   const finalOrdered=[startPoint,...ordered];
-   stage='최종 실제 도로경로 생성';
-   const r=await fetchOsrmRoute(finalOrdered);
-   routeState.optimized=ordered.map(x=>x.id);
-   routeState.routeDistance=Math.round((Number(r.distance)||0)/10)/100;
-   routeState.routeDuration=Math.round((Number(r.duration)||0)/60);
-   routeState.routeGeometry=r.geometry&&Array.isArray(r.geometry.coordinates)?r.geometry:null;
-   if(!routeState.routeGeometry)throw new Error('실제 도로경로 좌표를 받지 못했습니다.');
+   stage='선택 방문지 실제 도로 순서 계산'; const trip=await osrmTrip([startPoint,...points]); const ordered=trip.ordered.slice(1); const finalOrdered=[startPoint,...ordered];
+   stage='최종 실제 도로경로 생성'; const r=await fetchOsrmRoute(finalOrdered); routeState.optimized=ordered.map(x=>x.id); routeState.routeDistance=Math.round((Number(r.distance)||0)/10)/100; routeState.routeDuration=Math.round((Number(r.duration)||0)/60); routeState.routeGeometry=r.geometry?.coordinates? r.geometry:null; if(!routeState.routeGeometry)throw new Error('실제 도로경로 좌표를 받지 못했습니다.');
   }
-  routeState.stops=routeState.stops.map(x=>targets.find(t=>t.id===x.id)||x);
-  routeState.selectedIds=targets.map(x=>x.id);
-  if(routeState.startMode==='current')routeState.routeStartMeta={type:'current',name:'현재 위치',lat:startPoint.lat,lon:startPoint.lon};
-  else routeState.routeStartMeta={type:'stop',stopId:startPoint.id,name:startPoint.name,lat:startPoint.lat,lon:startPoint.lon};
+  routeState.stops=routeState.stops.map(x=>targets.find(t=>t.id===x.id)||x); routeState.selectedIds=targets.map(x=>x.id);
+  routeState.routeStartMeta=routeState.startMode==='current'?{type:'current',name:'현재 위치',lat:startPoint.lat,lon:startPoint.lon}:{type:'stop',stopId:startPoint.id,name:startPoint.name,lat:startPoint.lat,lon:startPoint.lon};
   saveRoute();render();
- }catch(err){
-  console.error('[만남체크북 동선 오류]',stage,err);
-  alert('동선 계산 중 오류가 발생했습니다.\n\n단계: '+stage+'\n오류: '+(err?.message||String(err))+'\n\n네트워크 또는 주소 검색 서비스가 일시적으로 응답하지 않았을 수 있습니다.');
- }finally{if(btn)btn.disabled=false}
+ }catch(err){console.error('[만남체크북 동선 오류]',stage,err);alert('동선 계산 중 오류가 발생했습니다.\n\n단계: '+stage+'\n오류: '+(err?.message||String(err))+'\n\n잠시 후 다시 시도해 주세요.');}
+ finally{if(btn)btn.disabled=false}
 }
 function naverAppRouteUrl(from,to,waypoints=[]){
  const params=[];
