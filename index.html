@@ -820,23 +820,20 @@ function naverAppRouteUrl(from,to,waypoints=[]){
   add('slat',Number(from.lat).toFixed(7));
   add('slng',Number(from.lon).toFixed(7));
   add('sname',from.name||from.address||'출발지');
-  // 공식 문서의 좌표 보정 파라미터도 함께 전달합니다.
-  add('secoords',Number(from.lat).toFixed(7)+','+Number(from.lon).toFixed(7));
  }
  if(!valid(to)) return '';
  add('dlat',Number(to.lat).toFixed(7));
  add('dlng',Number(to.lon).toFixed(7));
  add('dname',to.name||to.address||'도착지');
- add('decoords',Number(to.lat).toFixed(7)+','+Number(to.lon).toFixed(7));
  waypoints.filter(valid).slice(0,5).forEach((w,i)=>{
   const n=i+1;
   add('v'+n+'lat',Number(w.lat).toFixed(7));
   add('v'+n+'lng',Number(w.lon).toFixed(7));
   add('v'+n+'name',w.name||w.address||('경유지 '+n));
-  add('v'+n+'ecoords',Number(w.lat).toFixed(7)+','+Number(w.lon).toFixed(7));
  });
  // 모바일 웹의 appname은 현재 웹페이지 URL을 사용합니다.
- const appName=location.origin+location.pathname;
+ // iOS에서 URL Scheme 전달 안정성을 높이기 위해 불필요한 경로/쿼리를 제외합니다.
+ const appName=location.origin+'/';
  add('appname',appName);
  return 'nmap://route/car?'+params.join('&');
 }
@@ -860,11 +857,22 @@ function openNaverUrl(appUrl,webUrl){
   return;
  }
  if(isIOS){
+  // iOS Safari/PWA에서는 location.href보다 실제 링크 클릭이
+  // nmap://의 쿼리 파라미터를 보존한 채 네이버지도로 전달하는 데 안정적입니다.
   let hidden=false;
   const onHide=()=>{hidden=true;document.removeEventListener('visibilitychange',onHide)};
   document.addEventListener('visibilitychange',onHide);
-  window.location.href=appUrl;
-  setTimeout(()=>{document.removeEventListener('visibilitychange',onHide);if(!hidden&&webUrl)window.location.href=webUrl},1800);
+  const a=document.createElement('a');
+  a.href=appUrl;
+  a.rel='noopener';
+  a.style.display='none';
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(()=>{
+   document.removeEventListener('visibilitychange',onHide);
+   a.remove();
+   if(!hidden&&webUrl)window.location.href=webUrl;
+  },1800);
   return;
  }
  window.open(webUrl||appUrl,'_blank','noopener');
@@ -927,12 +935,21 @@ function drawRouteMap(){
  if(!pts.length){el.innerHTML='';return}
  const lats=pts.map(p=>Number(p.lat)),lons=pts.map(p=>Number(p.lon));
  const minLat=Math.min(...lats),maxLat=Math.max(...lats),minLon=Math.min(...lons),maxLon=Math.max(...lons);
- const pad=28,w=1000,h=500,dx=(maxLon-minLon)||0.01,dy=(maxLat-minLat)||0.01;
+ const pad=34,w=720,h=360,dx=(maxLon-minLon)||0.01,dy=(maxLat-minLat)||0.01;
  const xy=p=>({x:pad+((Number(p.lon)-minLon)/dx)*(w-pad*2),y:h-pad-((Number(p.lat)-minLat)/dy)*(h-pad*2)});
  const line=pts.map(x=>{const q=xy(x);return q.x.toFixed(1)+','+q.y.toFixed(1)}).join(' ');
  const grid=[.2,.4,.6,.8].map(v=>`<line class="routeGrid" x1="${pad}" y1="${(h-pad*2)*v+pad}" x2="${w-pad}" y2="${(h-pad*2)*v+pad}"/><line class="routeGrid" x1="${(w-pad*2)*v+pad}" y1="${pad}" x2="${(w-pad*2)*v+pad}" y2="${h-pad}"/>`).join('');
- const marks=pts.map((p,i)=>{const q=xy(p);const isStart=p._isStart;const label=isStart?'출발':((i+(start?0:1))+'. '+(p.name||'방문지'));return `<g><circle class="${isStart?'startDot':'routeDot'}" cx="${q.x}" cy="${q.y}" r="12"/>${!isStart?`<text class="routeNum" x="${q.x}" y="${q.y+4}" text-anchor="middle">${i+(start?0:1)}</text>`:''}<text class="routeLabel" x="${q.x}" y="${q.y-18}" text-anchor="middle">${esc(label).slice(0,20)}</text></g>`}).join('');
- el.innerHTML=`<svg viewBox="0 0 ${w} ${h}" role="img" aria-label="선택된 방문 대상자의 대략적인 방문 순서 지도"><rect x="0" y="0" width="${w}" height="${h}" fill="#f7f8fb"/>${grid}<polyline class="routeLine" points="${line}"/>${marks}</svg>`;
+ const marks=pts.map((p,i)=>{
+  const q=xy(p), isStart=p._isStart;
+  const visitNo=i+(start?0:1);
+  const label=isStart?'출발':(visitNo+'. '+(p.name||'방문지'));
+  // 가까운 지점의 이름이 겹치지 않도록 위/아래로 번갈아 배치합니다.
+  const labelY=q.y-22-(i%2?0:0);
+  const labelX=q.x+(i%2?16:-16);
+  const anchor=i%2?'start':'end';
+  return `<g><circle class="${isStart?'startDot':'routeDot'}" cx="${q.x}" cy="${q.y}" r="12"/>${!isStart?`<text class="routeNum" x="${q.x}" y="${q.y+4}" text-anchor="middle">${visitNo}</text>`:''}<text class="routeLabel" x="${labelX}" y="${labelY}" text-anchor="${anchor}">${esc(label).slice(0,16)}</text></g>`;
+ }).join('');
+ el.innerHTML=`<svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="xMidYMid meet" role="img" aria-label="선택된 방문 대상자의 대략적인 방문 순서 지도"><rect x="0" y="0" width="${w}" height="${h}" fill="#f7f8fb"/>${grid}<polyline class="routeLine" points="${line}"/>${marks}</svg>`;
 }
 function renderRoute(){
  const stops=routeState.stops||[];
