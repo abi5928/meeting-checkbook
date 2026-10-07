@@ -491,9 +491,17 @@ function openNaverCarRouteById(id){
    const ua=navigator.userAgent;
    if(/Android/i.test(ua)) location.href=intent;
    else if(/iPhone|iPad|iPod/i.test(ua)){
-    const clickedAt=Date.now();
+    let appOpened=false;
+    const markOpened=()=>{appOpened=true};
+    document.addEventListener('visibilitychange',markOpened,{once:true});
+    window.addEventListener('pagehide',markOpened,{once:true});
     location.href=nmap;
-    setTimeout(()=>{if(Date.now()-clickedAt<2000) location.href='https://apps.apple.com/kr/app/id311867728';},1500);
+    // iOS에서 네이버지도 앱 실행에 시간이 걸릴 수 있어 너무 이른 App Store 전환을 방지
+    setTimeout(()=>{
+      if(!appOpened && document.visibilityState!=='hidden'){
+        location.href='https://apps.apple.com/kr/app/id311867728';
+      }
+    },5000);
    }else window.open('https://map.naver.com/p/search/'+encodeURIComponent(p.address),'_blank');
   }catch(err){alert('네이버지도 연결 준비 중 오류가 발생했습니다.\n\n'+err.message)}
  })();
