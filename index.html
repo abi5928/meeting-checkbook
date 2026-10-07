@@ -274,6 +274,7 @@ function renderCheck(){
  const pct=state.people.length?Math.round(s.size/state.people.length*100):0;
  main.innerHTML=`<section class="summary"><div class="summaryrow"><div><div class="muted">${esc(state.title)} · ${esc(state.date)}</div><div class="count">${s.size} / ${state.people.length}명</div></div><div class="muted">${pct}%</div></div><div class="progress"><div class="bar" style="width:${pct}%"></div></div></section>
  <button class="primary" style="width:100%;margin-bottom:12px;font-size:16px;padding:14px" onclick="openRoute()">🚗 동선 만들기</button>
+ ${renderSavedRouteCard()}
  <div class="card">${activeRecordId?'<div class="ok" style="margin-bottom:10px">✏️ 기존 기록을 수정 중입니다. 체크 상태를 변경하면 이 기록에 저장됩니다.</div>':''}${state.topicType==='기타'?`<input id="titleInput" type="text" value="${esc(state.title)}" placeholder="기타 주제명">`:`<div class="ok" style="margin-bottom:8px">주제: <b>${esc(state.topicType)}</b></div>`}
  <div class="searchrow" style="margin-top:8px"><input id="search" type="search" value="" placeholder="🔍 대상자 이름 검색" autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false" name="person_search"><button class="mic" id="mic">🎙️</button></div>
  <div class="muted" style="margin-top:7px">이름을 검색하거나 🎙️ 음성으로 말하면 대상자를 찾습니다.</div><div id="searchList" class="list"></div></div>
@@ -519,9 +520,41 @@ function moveRoute(id,dir){
  const i=routeSelection.indexOf(String(id));if(i<0)return;
  const j=i+dir;if(j<0||j>=routeSelection.length)return;
  [routeSelection[i],routeSelection[j]]=[routeSelection[j],routeSelection[i]];
+ saveCurrentRoute();
  drawRouteResult();
 }
 function getRoutePeople(){return routeSelection.map(id=>state.people.find(p=>String(p.id)===String(id))).filter(Boolean)}
+function routeModeLabel(mode){
+ if(mode==='far')return '📍 현재 위치 기준 먼 순서 · 직선거리';
+ if(mode==='selected')return '☑️ 선택한 순서';
+ return '📍 현재 위치 기준 가까운 순서 · 직선거리';
+}
+function saveCurrentRoute(){
+ const r=activeRecordId?state.records.find(x=>x.id===activeRecordId):null;
+ if(!r)return;
+ r.route={ids:routeSelection.map(String),distances:{...routeDistances},mode:routeMode,coords:routeCoords?{lat:routeCoords.lat,lon:routeCoords.lon}:null,updatedAt:new Date().toISOString()};
+ save();
+}
+function renderSavedRouteCard(){
+ const r=activeRecordId?state.records.find(x=>x.id===activeRecordId):null;
+ const rt=r&&r.route;
+ if(!rt||!Array.isArray(rt.ids)||!rt.ids.length)return '';
+ const people=rt.ids.map(id=>state.people.find(p=>String(p.id)===String(id))).filter(Boolean);
+ if(!people.length)return '';
+ return `<div class="card" style="background:#f8faff;border:1px solid #dfe7f5;margin-bottom:12px"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><div><b>🚗 현재 동선</b><div class="muted" style="margin-top:4px">${esc(routeModeLabel(rt.mode))}</div></div><button class="small" onclick="openSavedRoute()">동선 보기</button></div><div style="margin-top:10px">${people.map((p,i)=>`<div style="display:flex;gap:8px;align-items:center;padding:7px 0;border-top:1px solid #e8edf5"><span class="route-number" style="width:26px;height:26px;font-size:12px">${i+1}</span><div style="min-width:0;flex:1"><b>${esc(p.name)}</b><span class="route-address">${rt.distances&&rt.distances[String(p.id)]!=null?('약 '+Number(rt.distances[String(p.id)]).toFixed(2)+' km · '):''}${esc(p.address||'주소 없음')}</span></div></div>`).join('')}</div></div>`;
+}
+function openSavedRoute(){
+ const r=activeRecordId?state.records.find(x=>x.id===activeRecordId):null;
+ const rt=r&&r.route;
+ if(!rt||!rt.ids||!rt.ids.length){alert('저장된 동선이 없습니다.');return}
+ routeSelection=rt.ids.map(String).filter(id=>state.people.some(p=>String(p.id)===id));
+ routeDistances={...(rt.distances||{})};
+ routeMode=rt.mode||'near';
+ routeCoords=rt.coords||null;
+ document.getElementById('routeResultLocation').textContent=routeModeLabel(routeMode);
+ drawRouteResult();
+ document.getElementById('routeResultModal').style.display='flex';
+}
 function requestRouteLocation(){
  const el=document.getElementById('routeLocation');
  if(!navigator.geolocation){el.textContent='이 기기에서는 현재 위치 기능을 사용할 수 없습니다.';return}
@@ -535,6 +568,7 @@ async function buildRouteList(){
  if(!routeSelection.length){alert('방문할 대상자를 한 명 이상 선택하세요.');return}
  if(routeMode==='selected'){
   routeDistances={};
+  saveCurrentRoute();
   closeRoute();
   document.getElementById('routeResultLocation').textContent='선택한 순서 그대로 표시했습니다.';
   drawRouteResult();
@@ -561,8 +595,9 @@ async function buildRouteList(){
   }
   rows.sort((a,b)=>routeMode==='near'?(a.km-b.km):(b.km-a.km));
   routeSelection=rows.map(x=>String(x.p.id));
+  saveCurrentRoute();
   closeRoute();
-  document.getElementById('routeResultLocation').textContent=routeMode==='near'?'출발 위치 확인됨 · 현재 위치 기준 가까운 순서 · 직선거리':'출발 위치 확인됨 · 현재 위치 기준 먼 순서 · 직선거리';
+  document.getElementById('routeResultLocation').textContent=routeModeLabel(routeMode);
   drawRouteResult();
   document.getElementById('routeResultModal').style.display='flex';
  }catch(err){
