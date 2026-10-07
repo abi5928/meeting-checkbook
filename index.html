@@ -28,7 +28,7 @@ nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:min(560px,
 nav button{flex:1;background:none;font-size:11px;padding:7px 2px;color:#6d7788}nav button.active{color:#4f7cff;font-weight:800}
 .modal{position:fixed;inset:0;background:#0008;display:none;align-items:flex-end;z-index:20}.sheet{background:#fff;width:min(560px,100%);margin:auto;border-radius:22px 22px 0 0;padding:20px}.result{padding:13px;border:1px solid #e2e7f0;border-radius:12px;margin:8px 0}.close{width:100%;margin-top:10px}.record{padding:12px 0;border-bottom:1px solid #edf0f5}.toast{position:fixed;left:50%;bottom:82px;transform:translateX(-50%);background:#182235;color:#fff;padding:10px 16px;border-radius:99px;display:none;z-index:30;white-space:nowrap}
 .small{font-size:12px;padding:7px 9px}.danger{background:#fff0f0;color:#b42318}
-.route-person{display:flex;align-items:center;gap:9px;padding:10px 4px;border-bottom:1px solid #edf0f5}.route-person input{width:22px;height:22px;flex:none}.route-order{display:inline-flex;width:26px;height:26px;border-radius:50%;align-items:center;justify-content:center;background:#eef2f8;font-weight:800;font-size:12px}.route-result{display:flex;gap:10px;align-items:flex-start;padding:12px 4px;border-bottom:1px solid #edf0f5}.route-number{width:30px;height:30px;border-radius:50%;background:#182235;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;flex:none}.route-updown{display:flex;gap:5px;margin-left:auto}.route-updown button{padding:6px 8px}.route-address{display:block;color:#718096;font-size:12px;margin-top:3px}.route-mode{display:grid;grid-template-columns:1fr;gap:7px;margin:10px 0}.route-mode label{display:flex;align-items:center;gap:9px;padding:11px 12px;border:1px solid #dbe2ef;border-radius:12px;background:#f8fafc;font-weight:700}.route-mode input{width:20px;height:20px;margin:0}.route-mode .hint{font-size:11px;font-weight:500;color:#718096;margin-left:auto}
+.route-person{display:flex;align-items:center;gap:9px;padding:10px 4px;border-bottom:1px solid #edf0f5}.route-person input{width:22px;height:22px;flex:none}.route-order{display:inline-flex;width:26px;height:26px;border-radius:50%;align-items:center;justify-content:center;background:#eef2f8;font-weight:800;font-size:12px}.route-result{display:flex;gap:10px;align-items:flex-start;padding:12px 4px;border-bottom:1px solid #edf0f5}.route-number{width:30px;height:30px;border-radius:50%;background:#182235;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;flex:none}.route-updown{display:flex;gap:5px;margin-left:auto}.route-updown button{padding:6px 8px}.route-address{display:block;color:#718096;font-size:12px;margin-top:3px}.route-mode{display:grid;grid-template-columns:1fr;gap:7px;margin:10px 0}.route-mode label{display:flex;align-items:center;gap:9px;padding:11px 12px;border:1px solid #dbe2ef;border-radius:12px;background:#f8fafc;font-weight:700}.route-mode input{width:20px;height:20px;margin:0}.route-mode .hint{font-size:11px;font-weight:500;color:#718096;margin-left:auto}.route-result-panel{display:none;margin-top:12px;padding:13px;border:2px solid #dbe3f1;border-radius:16px;background:#f8faff}.route-result-panel.show{display:block}.route-result-title{font-size:16px;font-weight:800;margin-bottom:5px}.route-result-sub{font-size:12px;color:#718096;margin-bottom:8px}
 </style>
 </head>
 <body>
@@ -91,17 +91,17 @@ nav button{flex:1;background:none;font-size:11px;padding:7px 2px;color:#6d7788}n
  <button id="routeLocationBtn" style="width:100%;margin-bottom:10px">📍 현재 위치 확인</button>
  <div id="routeModeHelp" class="warn">가까운 순서·먼 순서는 현재 위치와 대상자 주소의 직선거리를 계산합니다. 선택한 순서는 대상자를 체크한 순서 그대로 사용합니다.</div>
  <div id="routePeople"></div>
+ <div id="routeResultPanel" class="route-result-panel">
+  <div class="route-result-title">🚗 만들어진 방문순서</div>
+  <div id="routeResultLocation" class="route-result-sub"></div>
+  <div id="routeResult"></div>
+ </div>
  <div class="actions" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px">
   <button class="primary" onclick="buildRouteList()">방문순서 만들기</button>
   <button onclick="closeRoute()">취소</button>
  </div>
  </div></div>
-<div class="modal" id="routeResultModal"><div class="sheet">
- <h2>🚗 방문순서</h2>
- <div id="routeResultLocation" class="muted"></div>
- <div id="routeResult"></div>
- <button class="close" onclick="closeRouteResult()">닫기</button>
- </div></div>
+
 <div class="toast" id="toast"></div>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script>
@@ -498,6 +498,8 @@ function openRoute(){
  routeCoords=null;
  routeDistances={};
  routeMode='near';
+ const savedPanel=document.getElementById('routeResultPanel');
+ if(savedPanel)savedPanel.classList.remove('show');
  const box=document.getElementById('routePeople');
  box.innerHTML=state.people.map((p,i)=>`<label class="route-person"><input type="checkbox" data-route-id="${esc(String(p.id))}" onchange="toggleRoutePerson('${String(p.id).replace(/'/g,"\\'")}',this.checked)"><span class="route-order" id="routeOrder_${esc(String(p.id))}">–</span><span><b>${esc(p.name)}</b><span class="route-address">${birth6(p.birth)}${p.address?' · '+esc(p.address):' · 주소 없음'}</span></span></label>`).join('');
  const radio=document.querySelector('input[name="routeMode"][value="near"]');if(radio)radio.checked=true;
@@ -506,7 +508,7 @@ function openRoute(){
  document.getElementById('routeModeHelp').innerHTML='<b>가까운 순서</b> 또는 <b>먼 순서</b>는 현재 위치와 대상자 주소의 직선거리를 계산합니다. 실제 도로 경로는 다음 단계에서 네이버지도로 연결합니다.';
  document.getElementById('routeModal').style.display='flex';
 }
-function closeRoute(){document.getElementById('routeModal').style.display='none'}
+function closeRoute(){document.getElementById('routeModal').style.display='none'; render();}
 function toggleRoutePerson(id,checked){
  id=String(id);
  if(checked){if(!routeSelection.includes(id))routeSelection.push(id)}else{routeSelection=routeSelection.filter(x=>x!==id)}
@@ -530,9 +532,11 @@ function routeModeLabel(mode){
  return '📍 현재 위치 기준 가까운 순서 · 직선거리';
 }
 function saveCurrentRoute(){
- const r=activeRecordId?state.records.find(x=>x.id===activeRecordId):null;
+ let r=activeRecordId?state.records.find(x=>x.id===activeRecordId):null;
+ if(!r) r=getRecord(true);
  if(!r)return;
  r.route={ids:routeSelection.map(String),distances:{...routeDistances},mode:routeMode,coords:routeCoords?{lat:routeCoords.lat,lon:routeCoords.lon}:null,updatedAt:new Date().toISOString()};
+ r.people=state.people.map(p=>({...p}));
  save();
 }
 function renderSavedRouteCard(){
@@ -551,9 +555,16 @@ function openSavedRoute(){
  routeDistances={...(rt.distances||{})};
  routeMode=rt.mode||'near';
  routeCoords=rt.coords||null;
+ const radios=document.querySelectorAll('input[name="routeMode"]');
+ radios.forEach(el=>el.checked=(el.value===routeMode));
+ setRouteMode(routeMode);
+ const box=document.getElementById('routePeople');
+ state.people.forEach(p=>{const el=box?.querySelector(`[data-route-id="${CSS.escape(String(p.id))}"]`);if(el)el.checked=routeSelection.includes(String(p.id));});
+ drawRouteOrder();
  document.getElementById('routeResultLocation').textContent=routeModeLabel(routeMode);
  drawRouteResult();
- document.getElementById('routeResultModal').style.display='flex';
+ document.getElementById('routeResultPanel').classList.add('show');
+ document.getElementById('routeModal').style.display='flex';
 }
 function requestRouteLocation(){
  const el=document.getElementById('routeLocation');
@@ -569,10 +580,9 @@ async function buildRouteList(){
  if(routeMode==='selected'){
   routeDistances={};
   saveCurrentRoute();
-  closeRoute();
-  document.getElementById('routeResultLocation').textContent='선택한 순서 그대로 표시했습니다.';
+  document.getElementById('routeResultLocation').textContent='☑️ 선택한 순서 그대로 표시했습니다.';
   drawRouteResult();
-  document.getElementById('routeResultModal').style.display='flex';
+  document.getElementById('routeResultPanel').classList.add('show');
   return;
  }
  if(!routeCoords){alert('먼저 📍 현재 위치 확인을 눌러 출발 위치를 확인하세요.');return}
@@ -596,10 +606,10 @@ async function buildRouteList(){
   rows.sort((a,b)=>routeMode==='near'?(a.km-b.km):(b.km-a.km));
   routeSelection=rows.map(x=>String(x.p.id));
   saveCurrentRoute();
-  closeRoute();
+  drawRouteOrder();
   document.getElementById('routeResultLocation').textContent=routeModeLabel(routeMode);
   drawRouteResult();
-  document.getElementById('routeResultModal').style.display='flex';
+  document.getElementById('routeResultPanel').classList.add('show');
  }catch(err){
   alert('동선 계산을 완료하지 못했습니다.\n\n'+err.message+'\n\n주소가 정확한지 확인한 뒤 다시 시도하세요.');
  }finally{
@@ -609,12 +619,11 @@ async function buildRouteList(){
 }
 function drawRouteResult(){
  const box=document.getElementById('routeResult');if(!box)return;
+ const panel=document.getElementById('routeResultPanel');
  const people=getRoutePeople();
  if(!people.length){box.innerHTML='<div class="muted">선택한 대상자가 없습니다.</div>';return}
  box.innerHTML=people.map((p,i)=>`<div class="route-result"><div class="route-number">${i+1}</div><div style="min-width:0;flex:1"><b>${esc(p.name)}</b><span class="route-address">${routeDistances[String(p.id)]!=null?('약 '+routeDistances[String(p.id)].toFixed(2)+' km · '):''}${esc(p.phone||'')}${p.address?' · '+esc(p.address):'주소 없음'}</span></div><div class="route-updown"><button onclick="moveRoute('${String(p.id).replace(/'/g,"\\'")}',-1)" aria-label="위로">↑</button><button onclick="moveRoute('${String(p.id).replace(/'/g,"\\'")}',1)" aria-label="아래로">↓</button></div></div>`).join('');
 }
-function closeRouteResult(){document.getElementById('routeResultModal').style.display='none'}
-
 document.getElementById('routeLocationBtn').onclick=requestRouteLocation;
 
 function renderRecords(){
