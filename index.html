@@ -28,7 +28,7 @@ nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:min(560px,
 nav button{flex:1;background:none;font-size:11px;padding:7px 2px;color:#6d7788}nav button.active{color:#4f7cff;font-weight:800}
 .modal{position:fixed;inset:0;background:#0008;display:none;align-items:flex-end;z-index:20}.sheet{background:#fff;width:min(560px,100%);margin:auto;border-radius:22px 22px 0 0;padding:20px;max-height:92vh;overflow-y:auto;-webkit-overflow-scrolling:touch}.result{padding:13px;border:1px solid #e2e7f0;border-radius:12px;margin:8px 0}.close{width:100%;margin-top:10px}.record{padding:12px 0;border-bottom:1px solid #edf0f5}.toast{position:fixed;left:50%;bottom:82px;transform:translateX(-50%);background:#182235;color:#fff;padding:10px 16px;border-radius:99px;display:none;z-index:30;white-space:nowrap}
 .small{font-size:12px;padding:7px 9px}.danger{background:#fff0f0;color:#b42318}
-.route-person{display:flex;align-items:center;gap:9px;padding:10px 4px;border-bottom:1px solid #edf0f5}.route-person input{width:22px;height:22px;flex:none}.route-order{display:inline-flex;width:26px;height:26px;border-radius:50%;align-items:center;justify-content:center;background:#eef2f8;font-weight:800;font-size:12px}.route-result{display:flex;gap:10px;align-items:flex-start;padding:12px 4px;border-bottom:1px solid #edf0f5}.route-number{width:30px;height:30px;border-radius:50%;background:#182235;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;flex:none}.route-updown{display:flex;gap:5px;margin-left:auto}.route-updown button{padding:6px 8px}.route-address{display:block;color:#718096;font-size:12px;margin-top:3px}.route-mode{display:grid;grid-template-columns:1fr;gap:7px;margin:10px 0}.route-mode label{display:flex;align-items:center;gap:9px;padding:11px 12px;border:1px solid #dbe2ef;border-radius:12px;background:#f8fafc;font-weight:700}.route-mode input{width:20px;height:20px;margin:0}.route-mode .hint{font-size:11px;font-weight:500;color:#718096;margin-left:auto}.route-result-panel{display:none;margin-top:12px;padding:13px;border:2px solid #dbe3f1;border-radius:16px;background:#f8faff}.route-result-panel.show{display:block}.route-result-title{font-size:16px;font-weight:800;margin-bottom:5px}.route-result-sub{font-size:12px;color:#718096;margin-bottom:8px}
+.route-person{display:flex;align-items:center;gap:9px;padding:10px 4px;border-bottom:1px solid #edf0f5}.route-person input{width:22px;height:22px;flex:none}.route-order{display:inline-flex;width:26px;height:26px;border-radius:50%;align-items:center;justify-content:center;background:#eef2f8;font-weight:800;font-size:12px}.route-result{display:flex;gap:10px;align-items:flex-start;padding:12px 4px;border-bottom:1px solid #edf0f5}.route-number{width:30px;height:30px;border-radius:50%;background:#182235;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;flex:none}.route-updown{display:flex;gap:5px;margin-left:auto}.route-updown button{padding:6px 8px}.route-address{display:block;color:#718096;font-size:12px;margin-top:3px}.route-mode{display:grid;grid-template-columns:1fr;gap:7px;margin:10px 0}.route-mode label{display:flex;align-items:center;gap:9px;padding:11px 12px;border:1px solid #dbe2ef;border-radius:12px;background:#f8fafc;font-weight:700}.route-mode input{width:20px;height:20px;margin:0}.route-mode .hint{font-size:11px;font-weight:500;color:#718096;margin-left:auto}.route-result-panel{display:none;margin-top:12px;padding:13px;border:2px solid #dbe3f1;border-radius:16px;background:#f8faff}.route-result-panel.show{display:block}.route-result-title{font-size:16px;font-weight:800;margin-bottom:5px}.route-result-sub{font-size:12px;color:#718096;margin-bottom:8px}.route-switch{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}.route-done{color:#198754;font-weight:800}.route-next{background:#eaf2ff;color:#155eef;font-weight:800}
 </style>
 </head>
 <body>
@@ -81,7 +81,7 @@ nav button{flex:1;background:none;font-size:11px;padding:7px 2px;color:#6d7788}n
  <button class="close" onclick="closeNew()">취소</button>
 </div></div>
 <div class="modal" id="routeModal"><div class="sheet">
- <h2>🚗 동선 만들기</h2>
+ <div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><h2 style="margin:0">🚗 동선 만들기</h2><button class="small" onclick="goCheckFromRoute()">☑ 체크 화면</button></div>
  <div id="routeLocation" class="muted" style="margin-bottom:8px">순서를 정할 기준을 선택하세요.</div>
  <div class="route-mode">
   <label><input type="radio" name="routeMode" value="near" checked onchange="setRouteMode(this.value)"><span>📍 가까운 순서</span><span class="hint">현재 위치 기준</span></label>
@@ -96,9 +96,9 @@ nav button{flex:1;background:none;font-size:11px;padding:7px 2px;color:#6d7788}n
   <div id="routeResultLocation" class="route-result-sub"></div>
   <div id="routeResult"></div>
  </div>
- <div class="actions" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px">
+ <div class="route-switch"><button onclick="goCheckFromRoute()">☑ 체크 화면으로</button><button onclick="closeRoute()" id="routeCloseBtn">동선 완료</button></div>
+ <div class="actions" style="display:grid;grid-template-columns:1fr;gap:8px;margin-top:8px">
   <button class="primary" onclick="buildRouteList()">방문순서 만들기</button>
-  <button id="routeCloseBtn" onclick="closeRoute()">취소</button>
  </div>
  </div></div>
 
@@ -553,13 +553,27 @@ function saveCurrentRoute(){
  r.people=state.people.map(p=>({...p}));
  save();
 }
+function routeCheckInfo(id){
+ const r=getRecord(false);
+ return parseCheck(r?.checks?.[String(id)]);
+}
+function routeIsChecked(id){
+ const r=getRecord(false);
+ return !!(r?.checks?.[String(id)]);
+}
+function goCheckFromRoute(){
+ document.getElementById('routeModal').style.display='none';
+ tab='check';
+ render();
+}
 function renderSavedRouteCard(){
  const r=activeRecordId?state.records.find(x=>x.id===activeRecordId):null;
  const rt=r&&r.route;
  if(!rt||!Array.isArray(rt.ids)||!rt.ids.length)return '';
  const people=rt.ids.map(id=>state.people.find(p=>String(p.id)===String(id))).filter(Boolean);
  if(!people.length)return '';
- return `<div class="card" style="background:#f8faff;border:1px solid #dfe7f5;margin-bottom:12px"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><div><b>🚗 현재 동선</b><div class="muted" style="margin-top:4px">${esc(routeModeLabel(rt.mode))}</div></div><button class="small" onclick="openSavedRoute()">동선 보기</button></div><div style="margin-top:10px">${people.map((p,i)=>`<div style="display:flex;gap:8px;align-items:center;padding:7px 0;border-top:1px solid #e8edf5"><span class="route-number" style="width:26px;height:26px;font-size:12px">${i+1}</span><div style="min-width:0;flex:1"><b>${esc(p.name)}</b><span class="route-address">${rt.distances&&rt.distances[String(p.id)]!=null?('약 '+Number(rt.distances[String(p.id)]).toFixed(2)+' km · '):''}${esc(p.address||'주소 없음')}</span></div></div>`).join('')}</div></div>`;
+ const next=people.findIndex(p=>!routeIsChecked(p.id));
+ return `<div class="card" style="background:#f8faff;border:1px solid #dfe7f5;margin-bottom:12px"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><div><b>🚗 현재 동선</b><div class="muted" style="margin-top:4px">${esc(routeModeLabel(rt.mode))}</div></div><button class="small" onclick="openSavedRoute()">동선 보기</button></div><div style="margin-top:10px">${people.map((p,i)=>{const done=routeIsChecked(p.id);const isNext=!done&&i===next;return `<div style="display:flex;gap:8px;align-items:center;padding:7px 0;border-top:1px solid #e8edf5"><span class="route-number" style="width:26px;height:26px;font-size:12px">${i+1}</span><div style="min-width:0;flex:1"><b class="${done?'route-done':''}">${done?'✓ ':''}${esc(p.name)}${isNext?' · 다음 방문':''}</b><span class="route-address">${rt.distances&&rt.distances[String(p.id)]!=null?('약 '+Number(rt.distances[String(p.id)]).toFixed(2)+' km · '):''}${esc(p.address||'주소 없음')}</span></div></div>`}).join('')}</div></div>`;
 }
 function openSavedRoute(){
  const r=activeRecordId?state.records.find(x=>x.id===activeRecordId):null;
@@ -635,10 +649,10 @@ async function buildRouteList(){
 }
 function drawRouteResult(){
  const box=document.getElementById('routeResult');if(!box)return;
- const panel=document.getElementById('routeResultPanel');
  const people=getRoutePeople();
  if(!people.length){box.innerHTML='<div class="muted">선택한 대상자가 없습니다.</div>';return}
- box.innerHTML=people.map((p,i)=>`<div class="route-result"><div class="route-number">${i+1}</div><div style="min-width:0;flex:1"><b>${esc(p.name)}</b><span class="route-address">${routeDistances[String(p.id)]!=null?('약 '+routeDistances[String(p.id)].toFixed(2)+' km · '):''}${esc(p.phone||'')}${p.address?' · '+esc(p.address):'주소 없음'}</span></div><div class="route-updown"><button onclick="moveRoute('${String(p.id).replace(/'/g,"\\'")}',-1)" aria-label="위로">↑</button><button onclick="moveRoute('${String(p.id).replace(/'/g,"\\'")}',1)" aria-label="아래로">↓</button></div></div>`).join('');
+ const next=people.findIndex(p=>!routeIsChecked(p.id));
+ box.innerHTML=people.map((p,i)=>{const done=routeIsChecked(p.id);const isNext=!done&&i===next;return `<div class="route-result"><div class="route-number">${i+1}</div><div style="min-width:0;flex:1"><b class="${done?'route-done':''}">${done?'✓ ':''}${esc(p.name)}${isNext?' · 다음 방문':''}</b><span class="route-address">${routeDistances[String(p.id)]!=null?('약 '+routeDistances[String(p.id)].toFixed(2)+' km · '):''}${esc(p.phone||'')}${p.address?' · '+esc(p.address):'주소 없음'}</span></div><div class="route-updown"><button onclick="moveRoute('${String(p.id).replace(/'/g,"\'")}',-1)" aria-label="위로">↑</button><button onclick="moveRoute('${String(p.id).replace(/'/g,"\'")}',1)" aria-label="아래로">↓</button></div></div>`}).join('');
 }
 document.getElementById('routeLocationBtn').onclick=requestRouteLocation;
 
