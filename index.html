@@ -128,7 +128,7 @@ if(!Array.isArray(state.trash)) state.trash=[];
 let tab='check',query='',deleteMode=false,deleteSelected=new Set(),activeRecordId=null,memoPersonId=null,specialPersonId=null;
 
 function getSecurityMeta(){try{return JSON.parse(localStorage.getItem(LOCK_KEY)||'null')}catch(e){return null}}
-function setSecurityMeta(){localStorage.setItem(LOCK_KEY,JSON.stringify({v:1,enabled:!!security.enabled,autoLockMinutes:Number(security.autoLockMinutes)||0,salt:security.salt,iterations:security.iterations||PBKDF2_ITERATIONS}))}
+function setSecurityMeta(){localStorage.setItem(LOCK_KEY,JSON.stringify({v:2,setupComplete:true,enabled:!!security.enabled,autoLockMinutes:Number(security.autoLockMinutes)||0,salt:security.salt,iterations:security.iterations||PBKDF2_ITERATIONS}))}
 function randomBytes(n){const a=new Uint8Array(n);crypto.getRandomValues(a);return a}
 function bytesToB64(bytes){let s='';bytes.forEach(b=>s+=String.fromCharCode(b));return btoa(s)}
 function b64ToBytes(s){const bin=atob(s);const a=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)a[i]=bin.charCodeAt(i);return a}
@@ -198,8 +198,9 @@ function showUnlock(){showLock('🔒 앱 잠금',`<p class="muted">만남 체크
 async function bootSecurity(){
  const meta=getSecurityMeta(),raw=localStorage.getItem(KEY);
  if(meta&&meta.enabled){security=meta;showUnlock();return}
- if(!meta){
-  // 기존 v2.10 사용자도 첫 실행 시 보안 방식을 선택할 수 있도록 안내한다.
+ if(!meta || meta.setupComplete!==true){
+  // 기존 v2.10 사용자 또는 구버전 보안 설정 정보가 있는 기기도
+  // 새 보안 방식 선택을 한 번은 거치도록 한다.
   if(raw){try{state=JSON.parse(raw)}catch(e){state=defaultState()}}
   setupSecurity();return;
  }
