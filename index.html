@@ -903,6 +903,31 @@ async function exportExcel(r){
  const a=document.createElement('a');a.href=url;a.download=filename;document.body.appendChild(a);a.click();a.remove();
  setTimeout(()=>URL.revokeObjectURL(url),1000);
 }
+async function shareApp(){
+ const appUrl='https://meeting-checkbook.vercel.app/';
+ const shareData={title:'만남 체크북',text:'사회복지 업무용 방문·상담 기록 앱',url:appUrl};
+ try{
+   if(navigator.share){
+     await navigator.share(shareData);
+     return;
+   }
+ }catch(e){
+   if(e && e.name==='AbortError') return;
+ }
+ try{
+   if(navigator.clipboard && window.isSecureContext){
+     await navigator.clipboard.writeText(appUrl);
+     toast('✓ 앱 주소가 복사되었습니다.');
+     return;
+   }
+ }catch(e){}
+ const ta=document.createElement('textarea');
+ ta.value=appUrl;ta.style.position='fixed';ta.style.left='-9999px';
+ document.body.appendChild(ta);ta.select();
+ try{document.execCommand('copy');toast('✓ 앱 주소가 복사되었습니다.');}
+ catch(e){prompt('앱 주소를 복사하세요.',appUrl);}
+ ta.remove();
+}
 function renderManage(){
  const trash=Array.isArray(state.trash)?state.trash:[];
  let trashHtml='';
@@ -934,6 +959,11 @@ function renderManage(){
      • <b>삭제</b>: 기록 삭제 후에도 휴지통에 남아 있으며, 영구 삭제 또는 휴지통 비우기를 해야 완전히 제거됩니다.
     </div>
    </details>
+ </div>
+
+ <div class="card"><b>📤 앱 공유</b>
+   <p class="muted">대상자 자료는 공유하지 않고, 만남 체크북 웹앱 주소만 공유합니다.</p>
+   <button class="primary" style="width:100%" onclick="shareApp()">📤 앱 주소 공유</button>
  </div>
 
  <div class="card"><b>🔐 앱 잠금</b>
