@@ -132,6 +132,15 @@ nav button{flex:1;background:none;font-size:12px;padding:7px 2px;color:#6d7788;l
 /* 초기 보안 설정도 관리 화면과 같은 카드 비율을 사용하되 불필요한 확인 단계는 두지 않음 */
 .security-actions{gap:10px!important}
 .security-primary,.security-secondary{min-height:64px!important;height:64px!important}
+
+/* v14: 날짜 변경은 별도 중간 화면 없이 기기 기본 날짜 선택기로 바로 연결 */
+#checkDatePicker{position:fixed;left:-100px;top:50%;width:2px;height:2px;opacity:.01;pointer-events:none;border:0!important;background:transparent!important}
+.route-sheet-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px}
+.route-switch-single{grid-template-columns:1fr!important}
+.route-modal-sheet{padding-bottom:calc(96px + env(safe-area-inset-bottom))!important}
+body.route-open nav{z-index:25;background:rgba(255,255,255,.72);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);box-shadow:0 -2px 14px rgba(23,32,51,.08)}
+body.route-open nav button{color:#6d7788}
+body.route-open nav button.active{color:#2563eb}
 </style>
 </head>
 <body>
@@ -143,10 +152,10 @@ nav button{flex:1;background:none;font-size:12px;padding:7px 2px;color:#6d7788;l
 </header>
 <main id="main"></main>
 <nav>
- <button id="navHome" onclick="tab='home';render()">⌂<br>홈</button>
- <button id="navCheck" onclick="tab='check';render()">📋<br>체크</button>
- <button id="navRecords" onclick="tab='records';render()">🗂<br>목록</button>
- <button id="navManage" onclick="tab='settings';render()">⚙<br>설정</button>
+ <button id="navHome" onclick="navigateTab('home')">⌂<br>홈</button>
+ <button id="navCheck" onclick="navigateTab('check')">📋<br>체크</button>
+ <button id="navRecords" onclick="navigateTab('records')">🗂<br>목록</button>
+ <button id="navManage" onclick="navigateTab('settings')">⚙<br>설정</button>
 </nav>
 </div>
 <div class="modal" id="manageDetailModal"><div class="sheet manage-sheet"><h2 id="manageDetailTitle">설정</h2><div id="manageDetailBody"></div><button class="close" onclick="closeManageDetail()">닫기</button></div></div>
@@ -185,8 +194,8 @@ nav button{flex:1;background:none;font-size:12px;padding:7px 2px;color:#6d7788;l
  <button class="primary" style="width:100%;margin-top:8px" onclick="createNewTopic()">새 체크북 시작</button>
  <button class="close" onclick="closeNew()">취소</button>
 </div></div>
-<div class="modal" id="routeModal"><div class="sheet">
- <div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><h2 style="margin:0">🚗 동선 만들기</h2><button class="small" onclick="goCheckFromRoute()">☑ 체크 화면</button></div>
+<div class="modal" id="routeModal"><div class="sheet route-modal-sheet">
+ <div class="route-sheet-head"><div><h2 style="margin:0">🚗 동선 만들기</h2><div class="muted" style="margin-top:4px">현재 위치와 방문 순서를 확인합니다.</div></div></div>
  <div id="routeLocation" class="muted" style="margin-bottom:8px">순서를 정할 기준을 선택하세요.</div>
  <div class="route-mode">
   <label><input type="radio" name="routeMode" value="near" checked onchange="setRouteMode(this.value)"><span>📍 가까운 순서</span><span class="hint">현재 위치 기준</span></label>
@@ -201,7 +210,7 @@ nav button{flex:1;background:none;font-size:12px;padding:7px 2px;color:#6d7788;l
   <div id="routeResultLocation" class="route-result-sub"></div>
   <div id="routeResult"></div>
  </div>
- <div class="route-switch"><button onclick="goCheckFromRoute()">☑ 체크 화면으로</button><button onclick="closeRoute()" id="routeCloseBtn">동선 완료</button></div>
+ <div class="route-switch route-switch-single"><button onclick="closeRoute()" id="routeCloseBtn">동선 완료</button></div>
  <div class="actions" style="display:grid;grid-template-columns:1fr;gap:8px;margin-top:8px">
   <button class="primary" onclick="buildRouteList()">방문순서 만들기</button>
  </div>
@@ -493,17 +502,21 @@ function createNewTopic(){
  };
  reader.readAsArrayBuffer(f);
 }
+function navigateTab(nextTab){document.getElementById('routeModal').style.display='none';document.body.classList.remove('route-open');tab=nextTab;render();}
 function render(){setNav();const app=document.querySelector('.app');app?.classList.toggle('check-mode',tab==='check');app?.classList.toggle('manage-mode',tab==='settings');app?.classList.toggle('home-mode',tab==='home');const titleEl=document.querySelector('#appHeader .title');if(titleEl)titleEl.textContent='📋 방문 체크북';if(tab==='home')renderHome();else if(tab==='check')renderCheck();else if(tab==='records')renderRecords();else if(tab==='settings')renderManage()}
+document.getElementById('checkDatePicker').addEventListener('change',applyCheckDate);
 document.getElementById('datePicker').value=state.date;document.getElementById('datePicker').onchange=e=>{state.date=e.target.value;if(activeRecordId){const r=state.records.find(x=>x.id===activeRecordId);if(r)r.date=state.date;}save();render()};
 
 function openCheckDate(){
  const dp=document.getElementById('checkDatePicker');
  if(!dp)return;
  dp.value=state.date||new Date().toISOString().slice(0,10);
- document.getElementById('checkDateModal').style.display='flex';
- setTimeout(()=>{try{if(dp.showPicker)dp.showPicker();}catch(e){}},80);
+ try{
+   if(typeof dp.showPicker==='function'){dp.showPicker();}
+   else{dp.focus();dp.click();}
+ }catch(e){try{dp.focus();dp.click();}catch(_){}}
 }
-function closeCheckDate(){document.getElementById('checkDateModal').style.display='none'}
+function closeCheckDate(){const m=document.getElementById('checkDateModal');if(m)m.style.display='none'}
 function applyCheckDate(){
  const v=document.getElementById('checkDatePicker')?.value;
  if(!v)return;
@@ -530,12 +543,12 @@ function renderHome(){
    <div class="home-date-card"><div class="home-date">📅 ${esc(dateLabel)}</div><button onclick="openHomeDate()">변경</button></div>
    <div class="home-summary"><span>오늘 방문 예정</span><strong>${total}명 ›</strong></div>
    <div class="home-grid">
-    <button class="home-card blue" onclick="tab='check';render()"><div class="home-icon">✓</div><strong>방문 체크</strong><span>오늘 방문 기록</span></button>
+    <button class="home-card blue" onclick="navigateTab('check')"><div class="home-icon">✓</div><strong>방문 체크</strong><span>오늘 방문 기록</span></button>
     <button class="home-card green" onclick="openRoute()"><div class="home-icon">🚗</div><strong>동선 만들기</strong><span>방문 순서 · 길찾기</span></button>
-    <button class="home-card yellow" onclick="tab='check';render()"><div class="home-icon">☰</div><strong>대상자 목록</strong><span>명단 관리</span></button>
+    <button class="home-card yellow" onclick="navigateTab('check')"><div class="home-icon">☰</div><strong>대상자 목록</strong><span>명단 관리</span></button>
     <button class="home-card purple" onclick="newTopic()"><div class="home-icon">＋</div><strong>새 방문기록</strong><span>새 체크북 시작</span></button>
-    <button class="home-card pink" onclick="tab='records';render()"><div class="home-icon">▮▮▮</div><strong>방문 내역</strong><span>기록 조회</span></button>
-    <button class="home-card gray" onclick="tab='settings';render()"><div class="home-icon">⚙</div><strong>설정</strong><span>앱 설정 · 공유</span></button>
+    <button class="home-card pink" onclick="navigateTab('records')"><div class="home-icon">▮▮▮</div><strong>방문 내역</strong><span>기록 조회</span></button>
+    <button class="home-card gray" onclick="navigateTab('settings')"><div class="home-icon">⚙</div><strong>설정</strong><span>앱 설정 · 공유</span></button>
    </div>
  </div>`;
 }
@@ -547,7 +560,7 @@ function renderCheck(){
  const pct=state.people.length?Math.round(s.size/state.people.length*100):0;
  main.innerHTML=`<div class="check-screen">
    <div class="check-topbar">
-     <button class="check-back" onclick="tab='home';render()" aria-label="뒤로">‹</button>
+     <button class="check-back" onclick="navigateTab('home')" aria-label="뒤로">‹</button>
      <div class="check-heading">방문 체크</div>
      <div class="check-top-actions"><button aria-label="검색">⌕</button><button aria-label="더보기">⋮</button></div>
    </div>
@@ -836,9 +849,9 @@ function openRoute(){
  document.getElementById('routeLocation').textContent='현재 위치를 확인해 주세요.';
  document.getElementById('routeLocationBtn').style.display='block';
  document.getElementById('routeModeHelp').innerHTML='<b>가까운 순서</b> 또는 <b>먼 순서</b>는 현재 위치와 대상자 주소의 직선거리를 계산합니다. 실제 도로 경로는 다음 단계에서 네이버지도로 연결합니다.';
- document.getElementById('routeModal').style.display='flex';
+ document.getElementById('routeModal').style.display='flex';document.body.classList.add('route-open');
 }
-function closeRoute(){document.getElementById('routeModal').style.display='none'; render();}
+function closeRoute(){document.getElementById('routeModal').style.display='none';document.body.classList.remove('route-open');render();}
 function toggleRoutePerson(id,checked){
  id=String(id);
  if(checked){if(!routeSelection.includes(id))routeSelection.push(id)}else{routeSelection=routeSelection.filter(x=>x!==id)}
@@ -877,7 +890,7 @@ function routeIsChecked(id){
  return !!(r?.checks?.[String(id)]);
 }
 function goCheckFromRoute(){
- document.getElementById('routeModal').style.display='none';
+ document.getElementById('routeModal').style.display='none';document.body.classList.remove('route-open');
  tab='check';
  render();
 }
@@ -905,7 +918,7 @@ function openSavedRoute(){
  document.getElementById('routeResultLocation').textContent=routeModeLabel(routeMode);
  drawRouteResult();
  document.getElementById('routeResultPanel').classList.add('show');
- document.getElementById('routeModal').style.display='flex';
+ document.getElementById('routeModal').style.display='flex';document.body.classList.add('route-open');
 }
 function requestRouteLocation(){
  const el=document.getElementById('routeLocation');
@@ -1095,7 +1108,7 @@ function openManageDetail(type){
  b.innerHTML=h;m.classList.add('show');
 }
 function closeManageDetail(){document.getElementById('manageDetailModal')?.classList.remove('show')}
-function renderManage(){main.innerHTML=`<div class="manage-screen"><div class="manage-topbar"><button class="manage-back" onclick="tab='home';render()" aria-label="뒤로">‹</button><div class="manage-heading">설정</div></div><div class="manage-list">
+function renderManage(){main.innerHTML=`<div class="manage-screen"><div class="manage-topbar"><button class="manage-back" onclick="navigateTab('home')" aria-label="뒤로">‹</button><div class="manage-heading">설정</div></div><div class="manage-list">
 <button class="manage-item" onclick="openManageDetail('lock')"><span class="manage-item-icon orange">${manageIcon('lock')}</span><span class="manage-item-copy"><strong>앱 잠금</strong><span>${security.enabled?'비밀번호 설정 · 현재 사용 중':'비밀번호 설정'}</span></span><span class="manage-arrow">›</span></button>
 <button class="manage-item" onclick="openManageDetail('share')"><span class="manage-item-icon blue">${manageIcon('share')}</span><span class="manage-item-copy"><strong>앱 공유</strong><span>앱 주소만 공유합니다</span></span><span class="manage-arrow">›</span></button>
 <button class="manage-item" onclick="openManageDetail('help')"><span class="manage-item-icon blue">${manageIcon('book')}</span><span class="manage-item-copy"><strong>사용 안내</strong><span>앱 사용 방법 보기</span></span><span class="manage-arrow">›</span></button>
