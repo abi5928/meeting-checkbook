@@ -5,8 +5,9 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#4f7cff">
 <link rel="manifest" href="manifest.json">
-<title>만남 체크북 2.11</title>
+<title>만남 체크북 2.10 보안통합</title>
 <style>
+html,body{width:100%;max-width:100%;overflow-x:hidden;-webkit-text-size-adjust:100%}
 .call{display:inline-flex;text-decoration:none;align-items:center;justify-content:center;min-width:42px;}
 *{box-sizing:border-box}body{margin:0;background:#f3f6fb;color:#182235;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans KR",sans-serif}
 .app{max-width:560px;margin:auto;min-height:100vh;background:#fff;box-shadow:0 0 30px #00000012}
@@ -16,7 +17,8 @@ header{padding:16px 18px 14px;background:#4f7cff;color:white;position:sticky;top
 main{padding:15px 15px 92px}.card{background:#fff;border:1px solid #e4e8f0;border-radius:16px;padding:14px;margin-bottom:12px}
 .summary{background:#f5f7ff;border-radius:18px;padding:15px;margin-bottom:12px}.summaryrow{display:flex;justify-content:space-between;align-items:end}
 .count{font-size:26px;font-weight:800}.muted{color:#718096;font-size:13px}.progress{height:8px;background:#e5eaf5;border-radius:99px;margin-top:11px;overflow:hidden}.bar{height:100%;background:#4f7cff;border-radius:99px;width:0}
-input[type=text],input[type=file],select{width:100%;padding:13px;border:1px solid #dbe2ef;border-radius:13px;font-size:16px;background:#fff}
+input[type=text],input[type=password],input[type=file],select{width:100%;padding:13px;border:1px solid #dbe2ef;border-radius:13px;font-size:16px;background:#fff}
+input[type=password]{-webkit-text-size-adjust:100%;font-size:16px}
 button{border:0;border-radius:11px;padding:10px 12px;font-weight:750;color:#182235;background:#edf1f7}
 .primary{background:#182235;color:#fff}.voice{width:100%;background:#182235;color:#fff;padding:14px;font-size:16px;margin:10px 0}
 .searchrow{display:flex;gap:7px}.searchrow input{flex:1}.mic{font-size:20px;padding:9px 13px;background:#eef5ff;color:#155eef}
@@ -27,7 +29,7 @@ button{border:0;border-radius:11px;padding:10px 12px;font-weight:750;color:#1822
 nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:min(560px,100%);background:#fff;border-top:1px solid #e6eaf1;display:flex;padding:7px 3px calc(7px + env(safe-area-inset-bottom));z-index:6}
 nav button{flex:1;background:none;font-size:11px;padding:7px 2px;color:#6d7788}nav button.active{color:#4f7cff;font-weight:800}
 .modal{position:fixed;inset:0;background:#0008;display:none;align-items:flex-end;z-index:20}.sheet{background:#fff;width:min(560px,100%);margin:auto;border-radius:22px 22px 0 0;padding:20px;max-height:92vh;overflow-y:auto;-webkit-overflow-scrolling:touch}.result{padding:13px;border:1px solid #e2e7f0;border-radius:12px;margin:8px 0}.close{width:100%;margin-top:10px}.record{padding:12px 0;border-bottom:1px solid #edf0f5}.toast{position:fixed;left:50%;bottom:82px;transform:translateX(-50%);background:#182235;color:#fff;padding:10px 16px;border-radius:99px;display:none;z-index:30;white-space:nowrap}
-.small{font-size:12px;padding:7px 9px}.danger{background:#fff0f0;color:#b42318}
+.small{font-size:12px;padding:7px 9px}.help-summary{cursor:pointer;font-weight:800;list-style:none;padding:2px 0}.help-summary::-webkit-details-marker{display:none}.help-summary::before{content:"▶";display:inline-block;margin-right:7px;font-size:11px}.help-details[open] .help-summary::before{content:"▼"}.help-body{margin-top:10px;font-size:13px;line-height:1.7}.danger{background:#fff0f0;color:#b42318}
 .route-person{display:flex;align-items:center;gap:9px;padding:10px 4px;border-bottom:1px solid #edf0f5}.route-person input{width:22px;height:22px;flex:none}.route-order{display:inline-flex;width:26px;height:26px;border-radius:50%;align-items:center;justify-content:center;background:#eef2f8;font-weight:800;font-size:12px}.route-result{display:flex;gap:10px;align-items:flex-start;padding:12px 4px;border-bottom:1px solid #edf0f5}.route-number{width:30px;height:30px;border-radius:50%;background:#182235;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;flex:none}.route-updown{display:flex;gap:5px;margin-left:auto}.route-updown button{padding:6px 8px}.route-address{display:block;color:#718096;font-size:12px;margin-top:3px}.route-mode{display:grid;grid-template-columns:1fr;gap:7px;margin:10px 0}.route-mode label{display:flex;align-items:center;gap:9px;padding:11px 12px;border:1px solid #dbe2ef;border-radius:12px;background:#f8fafc;font-weight:700}.route-mode input{width:20px;height:20px;margin:0}.route-mode .hint{font-size:11px;font-weight:500;color:#718096;margin-left:auto}.route-result-panel{display:none;margin-top:12px;padding:13px;border:2px solid #dbe3f1;border-radius:16px;background:#f8faff}.route-result-panel.show{display:block}.route-result-title{font-size:16px;font-weight:800;margin-bottom:5px}.route-result-sub{font-size:12px;color:#718096;margin-bottom:8px}.route-switch{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}.route-done{color:#198754;font-weight:800}.route-next{background:#eaf2ff;color:#155eef;font-weight:800}
 </style>
 </head>
@@ -165,15 +167,15 @@ function setupSecurity(){
 }
 function startPasswordSetup(){
  showLock('🔒 비밀번호 설정',`<p class="muted">공용으로 사용하는 휴대폰이라면 앱 잠금 사용을 권장합니다.</p>
- <input id="setupPw" type="password" autocomplete="new-password" placeholder="비밀번호" style="margin-top:8px">
- <input id="setupPw2" type="password" autocomplete="new-password" placeholder="비밀번호 확인" style="margin-top:8px">
+ <input id="setupPw" type="password" autocomplete="new-password" placeholder="숫자 4자리" inputmode="numeric" pattern="\d{4}" maxlength="4" style="margin-top:8px;font-size:16px">
+ <input id="setupPw2" type="password" autocomplete="new-password" placeholder="숫자 4자리 확인" inputmode="numeric" pattern="\d{4}" maxlength="4" style="margin-top:8px;font-size:16px">
  <div id="setupMsg" class="warn" style="display:none"></div>
  <button class="primary" style="width:100%;margin-top:10px;padding:13px" onclick="completePasswordSetup()">비밀번호 사용 시작</button>
  <button class="close" onclick="setupSecurity()">뒤로</button>`)
 }
 async function completePasswordSetup(){
  const p=document.getElementById('setupPw').value,p2=document.getElementById('setupPw2').value,msg=document.getElementById('setupMsg');
- if(p.length<4){msg.textContent='비밀번호는 4자 이상 입력하세요.';msg.style.display='block';return}
+ if(!/^\d{4}$/.test(p)){msg.textContent='비밀번호는 숫자 4자리로 입력하세요.';msg.style.display='block';return}
  if(p!==p2){msg.textContent='비밀번호가 일치하지 않습니다.';msg.style.display='block';return}
  security={enabled:true,autoLockMinutes:0,salt:bytesToB64(randomBytes(16)),iterations:PBKDF2_ITERATIONS};
  localStorage.removeItem(GEOCODE_CACHE_KEY);
@@ -192,7 +194,7 @@ async function unlockWithPassword(){
   appUnlocked=true;hideLock();installActivityWatch();const dp=document.getElementById('datePicker');if(dp)dp.value=state.date;render();touchActivity();
  }catch(e){cryptoKey=null;msg.textContent='비밀번호가 맞지 않거나 저장된 데이터가 손상되었습니다.';msg.style.display='block';input.select()}
 }
-function showUnlock(){showLock('🔒 앱 잠금',`<p class="muted">만남 체크북을 사용하려면 비밀번호를 입력하세요.</p><input id="unlockPw" type="password" autocomplete="current-password" placeholder="비밀번호" style="margin-top:8px"><div id="unlockMsg" class="warn" style="display:none"></div><button class="primary" style="width:100%;margin-top:10px;padding:13px" onclick="unlockWithPassword()">잠금 해제</button>`);setTimeout(()=>document.getElementById('unlockPw')?.focus(),50)}
+function showUnlock(){showLock('🔒 앱 잠금',`<p class="muted">만남 체크북을 사용하려면 비밀번호를 입력하세요.</p><input id="unlockPw" type="password" autocomplete="current-password" placeholder="숫자 4자리" inputmode="numeric" maxlength="4" style="margin-top:8px;font-size:16px"><div id="unlockMsg" class="warn" style="display:none"></div><button class="primary" style="width:100%;margin-top:10px;padding:13px" onclick="unlockWithPassword()">잠금 해제</button>`);setTimeout(()=>document.getElementById('unlockPw')?.focus(),50)}
 async function bootSecurity(){
  const meta=getSecurityMeta(),raw=localStorage.getItem(KEY);
  if(meta&&meta.enabled){security=meta;showUnlock();return}
@@ -210,7 +212,7 @@ async function changePassword(){
  if(!security.enabled||!cryptoKey){startPasswordSetup();return}
  const old=prompt('현재 비밀번호를 입력하세요.');if(old===null)return;
  try{const k=await deriveKey(old,security.salt,security.iterations||PBKDF2_ITERATIONS);await decryptStateWithKey(k,localStorage.getItem(KEY))}catch(e){alert('현재 비밀번호가 맞지 않습니다.');return}
- const np=prompt('새 비밀번호를 입력하세요.');if(np===null)return;if(np.length<4){alert('비밀번호는 4자 이상 입력하세요.');return}
+ const np=prompt('새 비밀번호를 입력하세요.\n숫자 4자리로 입력하세요.');if(np===null)return;if(!/^\d{4}$/.test(np)){alert('비밀번호는 숫자 4자리로 입력하세요.');return}
  const np2=prompt('새 비밀번호를 다시 입력하세요.');if(np!==np2){alert('새 비밀번호가 일치하지 않습니다.');return}
  security.salt=bytesToB64(randomBytes(16));cryptoKey=await deriveKey(np,security.salt,security.iterations||PBKDF2_ITERATIONS);setSecurityMeta();save();toast('비밀번호가 변경되었습니다.');
 }
@@ -888,30 +890,49 @@ function renderManage(){
      return `<div class="record"><b>${esc(r.title)}</b><div class="muted">${esc(r.date)} · ${n}명/${total}명 체크${deleted?' · 삭제 '+esc(deleted):''}</div><div class="actions" style="margin-top:8px"><button class="small" onclick="restoreTrash('${String(r.id).replace(/'/g,"\\'")}')">↩ 복원</button><button class="small danger" onclick="permanentDeleteTrash('${String(r.id).replace(/'/g,"\\'")}')">영구 삭제</button></div></div>`;
    }).join('');
  }
- main.innerHTML=`<div class="card"><b>관리</b><p class="muted">명단과 기록은 원칙적으로 이 기기의 브라우저 저장공간에 보관됩니다. 별도 서버에 기록을 저장하지 않습니다.</p><button class="danger" onclick="resetAll()">전체 데이터 초기화</button></div>
+ main.innerHTML=`
+ <div class="card"><b>관리</b><p class="muted">명단과 기록은 원칙적으로 이 기기의 브라우저 저장공간에 보관됩니다.</p><button class="danger" onclick="resetAll()">전체 데이터 초기화</button></div>
+
  <div class="card"><b>🔐 정보보호 안내</b>
- <div class="ok">이 앱은 복지대상자의 개인정보를 별도 서버에 저장하지 않고, 현재 기기의 브라우저에 저장하는 것을 기본으로 합니다.</div>
- <p class="muted" style="line-height:1.65">
- • <b>명단·체크·메모</b>: 현재 기기의 브라우저 저장공간(localStorage)에 보관됩니다.<br>
- • <b>동선 만들기</b>: ‘가까운 순서/먼 순서’를 선택할 때에만 주소를 지도 좌표로 바꾸기 위해 외부 지도 서비스로 주소가 전송됩니다. 이 과정은 HTTPS로 전송되며, 주소 외의 이름·전화번호·메모는 보내지 않습니다.<br>
- • <b>선택한 순서</b>: 외부 지도 서비스로 주소를 보내지 않고, 사용자가 선택한 순서를 그대로 사용합니다.<br>
- • <b>길찾기</b>: 사용자가 ‘🧭 길찾기’를 누른 경우에만 다음 방문지의 위치정보가 네이버지도로 전달됩니다. 개인정보 최소화를 위해 이름은 네이버지도에 전달하지 않습니다.<br>
- • <b>음성 입력</b>: 브라우저의 음성인식 기능을 사용하므로 음성 처리 방식은 사용하는 기기·브라우저의 정책에 따라 달라질 수 있습니다.<br>
- • <b>Excel</b>: 가져오기·내보내기는 가능한 한 브라우저 안에서 처리하며, Excel 라이브러리는 외부 CDN에서 불러옵니다. 명단 자체를 CDN으로 전송하는 기능은 없습니다.<br>
- • <b>기기 보안</b>: 저장된 정보는 브라우저 저장공간에 있으므로 휴대폰 잠금, 브라우저·기기 계정 보안, 타인과의 기기 공유 여부 등 기기 내부 정보 관리는 사용자의 책임이 우선합니다.<br>
- • <b>삭제</b>: 기록 삭제는 먼저 휴지통으로 이동합니다. 완전히 없애려면 휴지통에서 ‘영구 삭제’ 또는 ‘휴지통 비우기’를 해야 합니다.
- </p>
- <div class="warn">주의: 외부 지도 서비스가 필요한 기능까지 포함하여 ‘모든 정보가 기기 밖으로 절대 나가지 않는다’고 보장하는 앱은 아닙니다. 민감한 개인정보를 입력할 때는 업무기관의 개인정보 처리기준과 보안정책을 함께 확인하세요.</div>
+   <div class="ok">명단과 기록은 기본적으로 이 기기에 저장됩니다. 필요한 기능에서만 외부 서비스가 사용됩니다.</div>
+   <details class="help-details">
+    <summary class="help-summary">자세한 정보보호 안내</summary>
+    <div class="help-body">
+     • <b>명단·체크·메모</b>: 현재 기기의 브라우저 저장공간에 보관됩니다.<br>
+     • <b>동선 만들기</b>: 가까운 순서·먼 순서를 만들 때 주소를 지도 좌표로 바꾸기 위해 외부 지도 서비스로 주소가 전송됩니다. 이름·전화번호·메모는 보내지 않습니다.<br>
+     • <b>선택한 순서</b>: 외부 지도 서비스로 주소를 보내지 않고 선택한 순서를 그대로 사용합니다.<br>
+     • <b>길찾기</b>: 사용자가 🧭 길찾기를 누른 경우에만 다음 방문지의 위치정보가 네이버지도로 전달됩니다.<br>
+     • <b>음성 입력</b>: 사용하는 기기·브라우저의 음성인식 방식에 따라 음성 처리가 달라질 수 있습니다.<br>
+     • <b>Excel</b>: 명단 자체를 CDN으로 전송하지는 않지만 Excel 기능을 위해 외부 CDN의 라이브러리를 불러옵니다.<br>
+     • <b>기기 보안</b>: 휴대폰 잠금과 브라우저·기기 계정 보안은 사용자가 관리해야 합니다.<br>
+     • <b>삭제</b>: 기록 삭제 후에도 휴지통에 남아 있으며, 영구 삭제 또는 휴지통 비우기를 해야 완전히 제거됩니다.
+    </div>
+   </details>
  </div>
+
  <div class="card"><b>🔐 앱 잠금</b>
- <p class="muted">${security.enabled?'현재 비밀번호 보호가 사용 중입니다.':'현재 비밀번호 없이 사용 중입니다.'}</p>
- ${security.enabled?`<div class="actions" style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><button onclick="changePassword()">비밀번호 변경</button><button onclick="lockApp()">🔒 지금 잠그기</button></div><button class="danger" style="width:100%;margin-top:8px" onclick="disablePassword()">🔓 비밀번호 사용 안 함</button>`:`<button class="primary" style="width:100%" onclick="startPasswordSetup()">🔒 비밀번호 사용</button>`}
- <div style="display:flex;align-items:center;gap:8px;margin-top:10px"><label class="muted" style="flex:1">자동 잠금</label><select onchange="setAutoLock(this.value)" style="width:auto"><option value="0" ${security.autoLockMinutes===0?'selected':''}>사용 안 함</option><option value="5" ${security.autoLockMinutes===5?'selected':''}>5분</option><option value="10" ${security.autoLockMinutes===10?'selected':''}>10분</option><option value="30" ${security.autoLockMinutes===30?'selected':''}>30분</option></select></div>
- <div class="warn" style="margin-top:10px">비밀번호를 잊으면 이 앱에서 저장된 암호화 데이터를 복구할 수 없습니다. 별도의 비밀번호 복구 기능은 두지 않습니다.</div>
+   <p class="muted">${security.enabled?'현재 숫자 4자리 비밀번호 보호가 사용 중입니다.':'현재 비밀번호 없이 사용 중입니다.'}</p>
+   ${security.enabled?`<div class="actions" style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><button onclick="changePassword()">비밀번호 변경</button><button onclick="lockApp()">🔒 지금 잠그기</button></div><button class="danger" style="width:100%;margin-top:8px" onclick="disablePassword()">🔓 비밀번호 사용 안 함</button>`:`<button class="primary" style="width:100%" onclick="startPasswordSetup()">🔒 비밀번호 사용</button>`}
+   <div style="display:flex;align-items:center;gap:8px;margin-top:10px"><label class="muted" style="flex:1">자동 잠금</label><select onchange="setAutoLock(this.value)" style="width:auto"><option value="0" ${security.autoLockMinutes===0?'selected':''}>사용 안 함</option><option value="5" ${security.autoLockMinutes===5?'selected':''}>5분</option><option value="10" ${security.autoLockMinutes===10?'selected':''}>10분</option><option value="30" ${security.autoLockMinutes===30?'selected':''}>30분</option></select></div>
+   <div class="warn" style="margin-top:10px">비밀번호를 잊으면 암호화된 데이터를 복구할 수 없습니다.</div>
  </div>
+
+ <div class="card"><b>📖 사용법 안내</b>
+   <details class="help-details">
+    <summary class="help-summary">기본 사용법 보기</summary>
+    <div class="help-body">
+     <b>① 새 체크북 만들기</b><br>NEW에서 업무 주제를 선택하고 명단을 불러오거나 직접 추가합니다.<br><br>
+     <b>② 대상자 체크</b><br>체크 메뉴에서 이름을 검색하거나 🎙️ 음성으로 찾아 체크합니다. 전화번호가 있으면 📞 버튼으로 바로 전화할 수 있습니다.<br><br>
+     <b>③ 방문상담·안부확인 등</b><br>필요하면 본인·가족·기타 관계와 만난 시간을 기록하고 메모를 남길 수 있습니다.<br><br>
+     <b>④ 동선 만들기</b><br>🚗 동선 만들기에서 방문할 사람을 선택하고 가까운 순서·먼 순서 또는 선택한 순서를 정합니다. 실제 길찾기는 🧭 길찾기로 네이버지도를 사용합니다.<br><br>
+     <b>⑤ 기록 확인</b><br>목록에서 기존 체크북을 열거나 Excel로 저장할 수 있습니다.<br><br>
+     <b>⑥ 삭제한 기록</b><br>삭제한 기록은 휴지통으로 이동합니다. 완전히 삭제하려면 휴지통에서 영구 삭제하거나 휴지통을 비우세요.
+    </div>
+   </details>
+ </div>
+
  <div class="card"><b>🗑️ 기록 휴지통</b><p class="muted">삭제한 기록은 휴지통으로 이동하며, 직접 영구 삭제하기 전까지 보관됩니다.</p><div id="trashList">${trashHtml}</div>${trash.length?'<button style="width:100%;margin-top:10px" onclick="emptyTrash()">휴지통 비우기</button>':''}</div>
- <div class="card"><b>보호 기준</b><p class="muted">정보보호 안내 · 외부 전송은 필요한 기능에서만 최소화합니다.</p></div>
- <div class="card"><b>사용 순서</b><p class="muted">① 체크 항목 입력 → ② 이름 검색 또는 🎙️ 음성 → ③ 체크 → ④ 필요하면 아래에서 대상자 추가·삭제 → ⑤ 목록에서 Excel 저장</p></div>`;
+ `;
 }
 function restoreTrash(id){
  const idx=state.trash.findIndex(x=>String(x.id)===String(id));
