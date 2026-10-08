@@ -5,29 +5,29 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#4f7cff">
 <link rel="manifest" href="manifest.json">
-<title>만남 체크북</title>
+<title>방문 체크북</title>
 <style>
 html,body{width:100%;max-width:100%;overflow-x:hidden;-webkit-text-size-adjust:100%}
 .call{display:inline-flex;text-decoration:none;align-items:center;justify-content:center;min-width:42px;}
-*{box-sizing:border-box}body{margin:0;background:#f3f6fb;color:#182235;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans KR",sans-serif}
-.app{width:min(100%,900px);margin:auto;min-height:100vh;background:#fff;box-shadow:0 0 30px #00000012}
-header{padding:16px 18px 14px;background:#4f7cff;color:white;position:sticky;top:0;z-index:5}
-.title{font-size:21px;font-weight:800}.datebar{display:flex;align-items:center;gap:8px;margin-top:10px}
-.datebar input{flex:1;min-width:0;border:0;border-radius:10px;padding:9px;background:#fff;color:#182235;font-weight:700}
-main{padding:15px 15px 92px}.card{background:#fff;border:1px solid #e4e8f0;border-radius:16px;padding:14px;margin-bottom:12px}
+*{box-sizing:border-box}body{margin:0;background:#f4f6f8;color:#172033;font-family:Pretendard,-apple-system,BlinkMacSystemFont,"Noto Sans KR","Segoe UI",sans-serif;letter-spacing:-.2px}
+.app{width:min(100%,900px);margin:auto;min-height:100vh;background:#f7f8fa;box-shadow:0 0 30px #00000010}
+header{padding:18px 18px 15px;background:#fff;color:#172033;position:sticky;top:0;z-index:5;border-bottom:1px solid #eef0f4}
+.title{font-size:23px;font-weight:900;letter-spacing:-.8px}.datebar{display:flex;align-items:center;gap:8px;margin-top:10px}
+.datebar input{flex:1;min-width:0;border:1px solid #e6e9ef;border-radius:12px;padding:10px;background:#f8f9fb;color:#182235;font-weight:700}
+main{padding:14px 15px 92px}.card{background:#fff;border:0;border-radius:18px;padding:16px;margin-bottom:12px;box-shadow:0 2px 12px rgba(23,32,51,.05)}
 .summary{background:#f5f7ff;border-radius:18px;padding:15px;margin-bottom:12px}.summaryrow{display:flex;justify-content:space-between;align-items:end}
 .count{font-size:26px;font-weight:800}.muted{color:#718096;font-size:13px}.progress{height:8px;background:#e5eaf5;border-radius:99px;margin-top:11px;overflow:hidden}.bar{height:100%;background:#4f7cff;border-radius:99px;width:0}
 input[type=text],input[type=password],input[type=file],select{width:100%;padding:13px;border:1px solid #dbe2ef;border-radius:13px;font-size:16px;background:#fff}
 input[type=password]{-webkit-text-size-adjust:100%;font-size:16px}
-button{border:0;border-radius:11px;padding:10px 12px;font-weight:750;color:#182235;background:#edf1f7}
-.primary{background:#182235;color:#fff}.voice{width:100%;background:#182235;color:#fff;padding:14px;font-size:16px;margin:10px 0}
+button{border:0;border-radius:12px;padding:11px 13px;font-weight:800;color:#172033;background:#eef1f5}
+.primary{background:#2563eb;color:#fff}.voice{width:100%;background:#182235;color:#fff;padding:14px;font-size:16px;margin:10px 0}
 .searchrow{display:flex;gap:7px}.searchrow input{flex:1}.mic{font-size:20px;padding:9px 13px;background:#eef5ff;color:#155eef}
 .list{margin-top:10px}.person{display:grid;grid-template-columns:32px 1fr auto;gap:8px;align-items:center;padding:12px 4px;border-bottom:1px solid #edf0f5}.person.delete-mode{grid-template-columns:32px 32px 1fr}.person.delete-mode .name{min-width:0}.person.delete-mode .actions{display:none}
 .num{color:#182235;font-size:14px;font-weight:800;text-align:right;min-width:30px;padding-right:2px}.name{font-weight:700}.birth{display:block;color:#8a95a8;font-size:12px;margin-top:3px}
 .actions{display:flex;gap:5px;align-items:center;flex-wrap:nowrap;justify-content:flex-end}.actions button,.actions select{flex:none}.actions select{max-width:86px}.status{min-width:62px}.compact{white-space:nowrap;min-width:auto}.memo{background:#f5f7ff;color:#40506b}.memo.has{background:#fff3cd;color:#7a5600}.off{background:#f0f2f6;color:#7a8495}.on{background:#dff7e8;color:#198754}.call{background:#edf8f1;color:#167044;padding:9px}
 .warn{background:#fff7e6;color:#946200;padding:10px;border-radius:10px;font-size:13px;margin:8px 0}.ok{background:#edf8f1;color:#167044;padding:10px;border-radius:10px;font-size:13px;margin:8px 0}
-nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:min(560px,100%);background:#fff;border-top:1px solid #e6eaf1;display:flex;padding:7px 3px calc(7px + env(safe-area-inset-bottom));z-index:6}
-nav button{flex:1;background:none;font-size:11px;padding:7px 2px;color:#6d7788}nav button.active{color:#4f7cff;font-weight:800}
+nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:min(560px,100%);background:rgba(255,255,255,.97);border-top:1px solid #e6eaf1;display:flex;padding:8px 5px calc(8px + env(safe-area-inset-bottom));z-index:6;box-shadow:0 -4px 18px rgba(23,32,51,.05)}
+nav button{flex:1;background:none;font-size:12px;padding:7px 2px;color:#6d7788;line-height:1.25}nav button.active{color:#2563eb;font-weight:900}
 .modal{position:fixed;inset:0;background:#0008;display:none;align-items:flex-end;z-index:20}.sheet{background:#fff;width:min(560px,100%);margin:auto;border-radius:22px 22px 0 0;padding:20px;max-height:92vh;overflow-y:auto;-webkit-overflow-scrolling:touch}.result{padding:13px;border:1px solid #e2e7f0;border-radius:12px;margin:8px 0}.close{width:100%;margin-top:10px}.record{padding:12px 0;border-bottom:1px solid #edf0f5}.toast{position:fixed;left:50%;bottom:82px;transform:translateX(-50%);background:#182235;color:#fff;padding:10px 16px;border-radius:99px;display:none;z-index:30;white-space:nowrap}
 .small{font-size:12px;padding:8px 10px}.actions button,.actions select{min-height:42px}.help-summary{cursor:pointer;font-weight:800;list-style:none;padding:2px 0}.help-summary::-webkit-details-marker{display:none}.help-summary::before{content:"▶";display:inline-block;margin-right:7px;font-size:11px}.help-details[open] .help-summary::before{content:"▼"}.help-body{margin-top:10px;font-size:13px;line-height:1.7}.danger{background:#fff0f0;color:#b42318}
 .route-person{display:flex;align-items:center;gap:9px;padding:10px 4px;border-bottom:1px solid #edf0f5}.route-person input{width:22px;height:22px;flex:none}.route-order{display:inline-flex;width:26px;height:26px;border-radius:50%;align-items:center;justify-content:center;background:#eef2f8;font-weight:800;font-size:12px}.route-result{display:flex;gap:10px;align-items:flex-start;padding:12px 4px;border-bottom:1px solid #edf0f5}.route-number{width:30px;height:30px;border-radius:50%;background:#182235;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;flex:none}.route-updown{display:flex;gap:5px;margin-left:auto}.route-updown button{padding:6px 8px}.route-address{display:block;color:#718096;font-size:12px;margin-top:3px}.route-mode{display:grid;grid-template-columns:1fr;gap:7px;margin:10px 0}.route-mode label{display:flex;align-items:center;gap:9px;padding:11px 12px;border:1px solid #dbe2ef;border-radius:12px;background:#f8fafc;font-weight:700}.route-mode input{width:20px;height:20px;margin:0}.route-mode .hint{font-size:11px;font-weight:500;color:#718096;margin-left:auto}.route-result-panel{display:none;margin-top:12px;padding:13px;border:2px solid #dbe3f1;border-radius:16px;background:#f8faff}.route-result-panel.show{display:block}.route-result-title{font-size:16px;font-weight:800;margin-bottom:5px}.route-result-sub{font-size:12px;color:#718096;margin-bottom:8px}.route-switch{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}.route-done{color:#198754;font-weight:800}.route-next{background:#eaf2ff;color:#155eef;font-weight:800}
@@ -56,12 +56,36 @@ nav button{flex:1;background:none;font-size:11px;padding:7px 2px;color:#6d7788}n
   .app{width:min(980px,100%)}
   nav{width:min(980px,100%)}
 }
+
+/* v3 design */
+.splash{position:fixed;inset:0;background:linear-gradient(180deg,#f8fbff,#eef4ff);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:1000;transition:opacity .35s ease,visibility .35s ease}.splash.hide{opacity:0;visibility:hidden;pointer-events:none}.splash-art{position:relative;width:132px;height:112px;margin-bottom:20px}.splash-map{position:absolute;left:14px;bottom:8px;width:104px;height:62px;background:#fff;border-radius:16px;box-shadow:0 12px 26px #4f7cff20;transform:rotate(-3deg)}.splash-map:before{content:"";position:absolute;left:34px;top:16px;width:34px;height:34px;background:#e8f1ff;border-radius:50%}.splash-pin{position:absolute;left:57px;top:4px;width:28px;height:38px;border-radius:18px 18px 18px 2px;background:#4f7cff;color:#fff;font-size:12px;text-align:center;padding-top:8px;transform:rotate(45deg);box-shadow:0 8px 18px #4f7cff33}.splash-pin::first-letter{color:#fff}.splash-house{position:absolute;left:34px;bottom:22px;font-size:36px;line-height:1;color:#6bb48b}.splash-title{font-size:31px;font-weight:900;letter-spacing:-1.5px;color:#182235}.splash-title span{color:#4f7cff}.splash-sub{margin-top:9px;color:#718096;font-size:14px}.splash-line{width:116px;height:5px;background:#dce5f5;border-radius:99px;margin-top:28px;overflow:hidden}.splash-line i{display:block;width:42%;height:100%;background:#4f7cff;border-radius:99px;animation:splashload 1.1s ease-in-out infinite alternate}@keyframes splashload{from{width:28%}to{width:72%}}
+.app.check-mode #appHeader{padding:10px 15px 9px}.app.check-mode #appHeader .datebar{display:none}.app.check-mode #appHeader .title{font-size:18px}.header-check .datebar{margin-top:7px}.header-check .datebar input{padding:7px 9px;border-radius:9px;font-size:13px}.check-top{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;background:#f6f8ff;border-radius:14px;padding:11px 12px;margin-bottom:8px}.check-top .check-count{font-size:20px;font-weight:900}.check-top .check-date{font-size:12px;color:#718096}.check-route{border:1px solid #d8e6ff!important;background:#eaf2ff!important;color:#155eef!important;font-size:14px!important;padding:11px 14px!important;margin-bottom:10px!important}.check-tools{padding:10px 0!important;border:0!important;margin-bottom:8px!important}.check-tools .topic-label{font-size:12px;margin-bottom:6px}.person{padding:13px 4px}.name{font-size:16px}.birth{font-size:13px;line-height:1.35}.actions{gap:6px}.actions button,.actions select{font-size:14px}.call{font-size:16px;padding:9px}.status{min-width:68px}.memo{min-width:48px}.card{box-shadow:0 2px 12px #18223508}.menu-box,.card>b{font-size:16px}
+@media (min-width:600px){.splash-title{font-size:36px}.check-top{padding:13px 16px}.check-top .check-count{font-size:23px}.person{padding:15px 8px}.name{font-size:18px}.birth{font-size:13px}.actions button{font-size:14px}}
+/* v4 visual correction */
+.app.check-mode main{padding-top:9px}.app.check-mode .check-top{margin-bottom:7px}.app.check-mode .check-route{margin-bottom:7px!important}.app.check-mode .check-tools{background:#fff;border:1px solid #e7ebf3!important;border-radius:14px;padding:10px!important}
+
+/* v5: clean card UI based on approved visual concept */
+.v5-card{background:#fff;border-radius:20px;padding:15px 16px;margin-bottom:12px;box-shadow:0 3px 14px rgba(23,32,51,.055);display:flex;align-items:center;gap:14px;min-height:82px}
+.v5-icon{width:48px;height:48px;border-radius:15px;display:flex;align-items:center;justify-content:center;font-size:25px;flex:none}
+.v5-icon.blue{background:#eaf2ff;color:#2563eb}.v5-icon.green{background:#e8f8ef;color:#16a05d}.v5-icon.orange{background:#fff3df;color:#ee9a00}.v5-icon.gray{background:#eef1f5;color:#596579}.v5-icon.red{background:#fff0f0;color:#ef3030}
+.v5-main{min-width:0;flex:1}.v5-main strong{display:block;font-size:17px;font-weight:900;letter-spacing:-.5px}.v5-main span{display:block;margin-top:4px;font-size:13px;color:#7a8495;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.v5-arrow{font-size:24px;color:#9aa3b2;font-weight:400}
+.v5-manage-title{font-size:28px;font-weight:900;margin:4px 2px 16px;letter-spacing:-1px}.v5-section-note{font-size:13px;color:#7a8495;margin:-7px 2px 14px}
+.v5-check-head{background:#fff;border-radius:18px;padding:14px 15px;margin-bottom:10px;box-shadow:0 2px 12px rgba(23,32,51,.05)}
+.v5-check-date{font-size:13px;color:#6f7b8e}.v5-check-count{display:flex;align-items:end;justify-content:space-between;margin-top:5px}.v5-check-count strong{font-size:22px;font-weight:900}.v5-check-count span{font-size:12px;color:#7a8495}.v5-route{display:flex;align-items:center;justify-content:space-between;background:#eaf2ff!important;color:#2563eb!important;border:0!important;border-radius:15px!important;box-shadow:none!important;font-size:15px!important;min-height:52px;margin-bottom:10px!important}.v5-search{background:#fff;border-radius:16px;padding:10px;box-shadow:0 2px 12px rgba(23,32,51,.045);margin-bottom:10px}.v5-person{background:#fff;border-radius:17px;padding:12px 10px;margin-bottom:8px;border:0!important;box-shadow:0 2px 10px rgba(23,32,51,.045)}
+.v5-person .num{font-size:14px}.v5-person .name{font-size:16px;font-weight:900}.v5-person .birth{font-size:12px;color:#7b8595}.v5-person .call{border-radius:12px}.v5-person .status{border-radius:12px;font-size:13px;min-width:58px}.v5-person .memo{border-radius:12px}
+.splash{background:linear-gradient(180deg,#fbfcff 0%,#f0f5ff 100%)}.splash-title{font-family:Pretendard,-apple-system,BlinkMacSystemFont,"Noto Sans KR",sans-serif;font-weight:950}.splash-sub{font-size:15px}
+.app.manage-mode #appHeader .datebar{display:none}.app.manage-mode #appHeader{padding:17px 18px 14px}.app.manage-mode #appHeader .title{font-size:22px}
+@media(min-width:600px){.v5-manage-title{font-size:30px}.v5-card{min-height:88px;padding:17px 20px}.v5-main strong{font-size:18px}.v5-person{padding:14px}.v5-check-head{padding:16px 18px}}
+
+/* v6 manage mockup */
+.manage-mode #appHeader{display:none}.manage-mode .app{background:#f7f8fa;box-shadow:none}.manage-mode main{max-width:560px;margin:0 auto;padding:0 16px calc(92px + env(safe-area-inset-bottom))}.manage-screen{min-height:calc(100vh - 78px);padding-top:10px}.manage-topbar{height:54px;display:flex;align-items:center;justify-content:center;position:relative;margin:0 -2px 8px}.manage-back{position:absolute;left:0;top:50%;transform:translateY(-50%);width:44px;height:44px;border-radius:50%;background:transparent;font-size:30px;font-weight:400;color:#172033;padding:0;line-height:1}.manage-heading{font-size:21px;font-weight:900;letter-spacing:-.8px;color:#172033}.manage-list{display:flex;flex-direction:column;gap:12px}.manage-item{width:100%;min-height:80px;border:0;border-radius:20px;background:#fff;box-shadow:0 3px 14px rgba(23,32,51,.055);display:grid;grid-template-columns:58px 1fr 26px;align-items:center;text-align:left;padding:13px 14px 13px 15px;cursor:pointer}.manage-item:active{transform:scale(.985)}.manage-item-icon{width:48px;height:48px;display:flex;align-items:center;justify-content:center}.manage-item-icon svg{width:38px;height:38px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}.manage-item-icon.orange{color:#f6a21a}.manage-item-icon.blue{color:#246bff}.manage-item-icon.gray{color:#718096}.manage-item-icon.red{color:#ef3340}.manage-item-copy{min-width:0}.manage-item-copy strong{display:block;font-size:18px;line-height:1.25;font-weight:900;color:#172033;letter-spacing:-.5px}.manage-item-copy span{display:block;margin-top:5px;font-size:14px;line-height:1.25;color:#718096}.manage-arrow{font-size:28px;line-height:1;color:#98a2b1;text-align:right;font-weight:300}.manage-sheet{max-width:560px}@media(min-width:600px){.manage-mode main{padding-left:22px;padding-right:22px}.manage-item{min-height:84px}.manage-item-copy strong{font-size:19px}.manage-item-copy span{font-size:15px}}
 </style>
 </head>
 <body>
+<div id="splash" class="splash" aria-label="방문 체크북 시작 화면"><div class="splash-art"><div class="splash-map"></div><div class="splash-pin">•</div><div class="splash-house">⌂</div></div><div class="splash-title"><span>방문</span> 체크북</div><div class="splash-sub">소중한 방문을 간단하게 기록하세요</div><div class="splash-line"><i></i></div></div>
 <div class="app">
-<header>
- <div class="title">📋 만남 체크북</div>
+<header id="appHeader">
+ <div class="title">📋 방문 체크북</div>
  <div class="datebar"><input id="datePicker" type="date"><span>날짜</span></div>
 </header>
 <main id="main"></main>
@@ -72,6 +96,7 @@ nav button{flex:1;background:none;font-size:11px;padding:7px 2px;color:#6d7788}n
  <button id="navManage" onclick="tab='manage';render()">⚙<br>관리</button>
 </nav>
 </div>
+<div class="modal" id="manageDetailModal"><div class="sheet manage-sheet"><h2 id="manageDetailTitle">관리</h2><div id="manageDetailBody"></div><button class="close" onclick="closeManageDetail()">닫기</button></div></div>
 <div class="modal" id="voiceModal"><div class="sheet">
  <h2>🎤 음성 체크</h2><div id="voiceMsg">이름을 말씀하세요.</div><div id="voiceResults"></div>
  <button class="close" onclick="closeVoice()">닫기</button>
@@ -185,7 +210,7 @@ function installActivityWatch(){['touchstart','mousedown','keydown','scroll'].fo
 function showLock(title,html){document.getElementById('lockContent').innerHTML='<h2 style="margin-top:0">'+title+'</h2>'+html;document.getElementById('lockOverlay').style.display='flex'}
 function hideLock(){document.getElementById('lockOverlay').style.display='none'}
 function setupSecurity(){
- showLock('🔐 만남 체크북 보안 설정',`<p class="muted" style="line-height:1.6">이 앱은 휴대폰에 대상자 명단과 기록을 저장합니다.<br>앱 잠금을 사용하시겠습니까?</p>
+ showLock('🔐 방문 체크북 보안 설정',`<p class="muted" style="line-height:1.6">이 앱은 휴대폰에 대상자 명단과 기록을 저장합니다.<br>앱 잠금을 사용하시겠습니까?</p>
  <button class="primary" style="width:100%;margin-top:8px;padding:14px" onclick="startPasswordSetup()">🔒 비밀번호 사용</button>
  <button style="width:100%;margin-top:8px;padding:14px" onclick="chooseNoPassword()">🔓 비밀번호 사용 안 함</button>
  <div class="warn" style="margin-top:12px">비밀번호를 사용하지 않아도 됩니다. 나중에 <b>관리 → 앱 잠금</b>에서 언제든지 설정할 수 있습니다.<br>공용으로 사용하는 휴대폰에서는 앱 잠금 사용을 권장합니다.</div>`)
@@ -219,7 +244,7 @@ async function unlockWithPassword(){
   appUnlocked=true;hideLock();installActivityWatch();const dp=document.getElementById('datePicker');if(dp)dp.value=state.date;render();touchActivity();
  }catch(e){cryptoKey=null;msg.textContent='비밀번호가 맞지 않거나 저장된 데이터가 손상되었습니다.';msg.style.display='block';input.select()}
 }
-function showUnlock(){showLock('🔒 앱 잠금',`<p class="muted">만남 체크북을 사용하려면 비밀번호를 입력하세요.</p><input id="unlockPw" type="password" autocomplete="current-password" placeholder="숫자 4자리" inputmode="numeric" maxlength="4" style="margin-top:8px;font-size:16px"><div id="unlockMsg" class="warn" style="display:none"></div><button class="primary" style="width:100%;margin-top:10px;padding:13px" onclick="unlockWithPassword()">잠금 해제</button>`);setTimeout(()=>document.getElementById('unlockPw')?.focus(),50)}
+function showUnlock(){showLock('🔒 앱 잠금',`<p class="muted">방문 체크북을 사용하려면 비밀번호를 입력하세요.</p><input id="unlockPw" type="password" autocomplete="current-password" placeholder="숫자 4자리" inputmode="numeric" maxlength="4" style="margin-top:8px;font-size:16px"><div id="unlockMsg" class="warn" style="display:none"></div><button class="primary" style="width:100%;margin-top:10px;padding:13px" onclick="unlockWithPassword()">잠금 해제</button>`);setTimeout(()=>document.getElementById('unlockPw')?.focus(),50)}
 async function bootSecurity(){
  const meta=getSecurityMeta(),raw=localStorage.getItem(KEY);
  if(meta&&meta.enabled){security=meta;showUnlock();return}
@@ -398,20 +423,20 @@ function createNewTopic(){
  };
  reader.readAsArrayBuffer(f);
 }
-function render(){setNav();if(tab==='check')renderCheck();else if(tab==='records')renderRecords();else renderManage()}
+function render(){setNav();const app=document.querySelector('.app');app?.classList.toggle('check-mode',tab==='check');app?.classList.toggle('manage-mode',tab==='manage');const titleEl=document.querySelector('#appHeader .title');if(titleEl)titleEl.textContent=tab==='manage'?'관리':'📋 방문 체크북';if(tab==='check')renderCheck();else if(tab==='records')renderRecords();else renderManage()}
 document.getElementById('datePicker').value=state.date;document.getElementById('datePicker').onchange=e=>{state.date=e.target.value;if(activeRecordId){const r=state.records.find(x=>x.id===activeRecordId);if(r)r.date=state.date;}save();render()};
 
 function renderCheck(){
  query='';
  const r=getRecord(false),s=checkedSet(),list=state.people.filter(p=>!query||nameNorm(p.name).includes(nameNorm(query))||birth6(p.birth).includes(query.replace(/-/g,'')));
  const pct=state.people.length?Math.round(s.size/state.people.length*100):0;
- main.innerHTML=`<section class="summary"><div class="summaryrow"><div><div class="muted">${esc(state.title)} · ${esc(state.date)}</div><div class="count">${s.size} / ${state.people.length}명</div></div><div class="muted">${pct}%</div></div><div class="progress"><div class="bar" style="width:${pct}%"></div></div></section>
- <button class="primary" style="width:100%;margin-bottom:12px;font-size:16px;padding:14px" onclick="openRoute()">🚗 동선 만들기</button>
+ main.innerHTML=`<section class="v5-check-head"><div class="v5-check-date">${esc(state.title)} · ${esc(state.date)}</div><div class="v5-check-count"><strong>${s.size} / ${state.people.length}명</strong><span>${pct}%</span></div><div class="progress" style="margin-top:8px"><div class="bar" style="width:${pct}%"></div></div></section>
+ <button class="v5-route" style="width:100%" onclick="openRoute()"><span>🚗&nbsp; 동선 만들기</span><span>›</span></button>
  ${renderSavedRouteCard()}
- <div class="card">${activeRecordId?'<div class="ok" style="margin-bottom:10px">✏️ 기존 기록을 수정 중입니다. 체크 상태를 변경하면 이 기록에 저장됩니다.</div>':''}${state.topicType==='기타'?`<input id="titleInput" type="text" value="${esc(state.title)}" placeholder="기타 주제명">`:`<div class="ok" style="margin-bottom:8px">주제: <b>${esc(state.topicType)}</b></div>`}
- <div class="searchrow" style="margin-top:8px"><input id="search" type="search" value="" placeholder="🔍 대상자 이름 검색" autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false" name="person_search"><button class="mic" id="mic">🎙️</button></div>
- <div class="muted" style="margin-top:7px">이름을 검색하거나 🎙️ 음성으로 말하면 대상자를 찾습니다.</div><div id="searchList" class="list"></div></div>
- <div class="card" id="peopleTools"></div>`;
+ <div class="v5-search">${activeRecordId?'<div class="ok" style="margin-bottom:10px">✏️ 기존 기록을 수정 중입니다.</div>':''}${state.topicType==='기타'?`<input id="titleInput" type="text" value="${esc(state.title)}" placeholder="기타 주제명">`:''}
+ <div class="searchrow" style="margin-top:0"><input id="search" type="search" value="" placeholder="🔍 대상자 이름 검색" autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false" name="person_search"><button class="mic" id="mic">🎙️</button></div>
+ <div class="muted" style="margin:7px 3px 0">이름을 검색하거나 🎙️ 음성으로 말하면 대상자를 찾습니다.</div><div id="searchList" class="list"></div></div>
+ <div id="peopleTools"></div>`;
  const titleInput=document.getElementById('titleInput'); if(titleInput) titleInput.onchange=e=>{state.title=e.target.value.trim()||'기타';state.topicType='기타';const r=activeRecordId?state.records.find(x=>x.id===activeRecordId):null;if(r){r.title=state.title;r.topicType='기타'}save();render()};
  document.getElementById('search').oninput=e=>{query=e.target.value;drawSearch()};
  document.getElementById('mic').onclick=voiceInput;drawSearch();drawPeopleTools()
@@ -440,7 +465,7 @@ function drawSearch(){
      const memoBtn=`<button class="small memo ${info.memo?'has':''}" onclick="openMemo('${key}')">${info.memo?'📝 메모✓':'메모'}</button>`;
      control += memoBtn;
    }
-   return `<div class="person ${deleteMode?'delete-mode':''}">${num}${del}<div class="name">${esc(p.name)}<span class="birth">${esc(birth6(p.birth))}${p.phone?' · '+esc(p.phone):''}${p.address?' · '+esc(p.address):''}</span></div><div class="actions">${deleteMode?'':(p.phone?`<a class="call" href="tel:${esc(phoneNorm(p.phone))}" aria-label="전화">📞</a>`:'')}${control}</div></div>`;
+   return `<div class="person v5-person ${deleteMode?'delete-mode':''}">${num}${del}<div class="name">${esc(p.name)}<span class="birth">${esc(birth6(p.birth))}${p.phone?' · '+esc(p.phone):''}${p.address?' · '+esc(p.address):''}</span></div><div class="actions">${deleteMode?'':(p.phone?`<a class="call" href="tel:${esc(phoneNorm(p.phone))}" aria-label="전화">📞</a>`:'')}${control}</div></div>`;
  }).join('')
 }
 function drawPeopleTools(){
@@ -905,7 +930,7 @@ async function exportExcel(r){
 }
 async function shareApp(){
  const appUrl='https://meeting-checkbook.vercel.app/';
- const shareData={title:'만남 체크북',text:'사회복지 업무용 방문·상담 기록 앱',url:appUrl};
+ const shareData={title:'방문 체크북',text:'사회복지 업무용 방문·상담 기록 앱',url:appUrl};
  try{
    if(navigator.share){
      await navigator.share(shareData);
@@ -928,68 +953,36 @@ async function shareApp(){
  catch(e){prompt('앱 주소를 복사하세요.',appUrl);}
  ta.remove();
 }
-function renderManage(){
- const trash=Array.isArray(state.trash)?state.trash:[];
- let trashHtml='';
- if(!trash.length){
-   trashHtml='<div class="muted">휴지통이 비어 있습니다.</div>';
- }else{
-   trashHtml=trash.slice().reverse().map(r=>{
-     const n=Object.values(r.checks||{}).filter(Boolean).length;
-     const total=Array.isArray(r.people)?r.people.length:0;
-     const deleted=r.deletedAt?new Date(r.deletedAt).toLocaleString('ko-KR',{year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}):'';
-     return `<div class="record"><b>${esc(r.title)}</b><div class="muted">${esc(r.date)} · ${n}명/${total}명 체크${deleted?' · 삭제 '+esc(deleted):''}</div><div class="actions" style="margin-top:8px"><button class="small" onclick="restoreTrash('${String(r.id).replace(/'/g,"\\'")}')">↩ 복원</button><button class="small danger" onclick="permanentDeleteTrash('${String(r.id).replace(/'/g,"\\'")}')">영구 삭제</button></div></div>`;
-   }).join('');
- }
- main.innerHTML=`
- <div class="card"><b>관리</b><p class="muted">명단과 기록은 원칙적으로 이 기기의 브라우저 저장공간에 보관됩니다.</p><button class="danger" onclick="resetAll()">전체 데이터 초기화</button></div>
-
- <div class="card"><b>🔐 정보보호 안내</b>
-   <div class="ok">명단과 기록은 기본적으로 이 기기에 저장됩니다. 필요한 기능에서만 외부 서비스가 사용됩니다.</div>
-   <details class="help-details">
-    <summary class="help-summary">자세한 정보보호 안내</summary>
-    <div class="help-body">
-     • <b>명단·체크·메모</b>: 현재 기기의 브라우저 저장공간에 보관됩니다.<br>
-     • <b>동선 만들기</b>: 가까운 순서·먼 순서를 만들 때 주소를 지도 좌표로 바꾸기 위해 외부 지도 서비스로 주소가 전송됩니다. 이름·전화번호·메모는 보내지 않습니다.<br>
-     • <b>선택한 순서</b>: 외부 지도 서비스로 주소를 보내지 않고 선택한 순서를 그대로 사용합니다.<br>
-     • <b>길찾기</b>: 사용자가 🧭 길찾기를 누른 경우에만 다음 방문지의 위치정보가 네이버지도로 전달됩니다.<br>
-     • <b>음성 입력</b>: 사용하는 기기·브라우저의 음성인식 방식에 따라 음성 처리가 달라질 수 있습니다.<br>
-     • <b>Excel</b>: 명단 자체를 CDN으로 전송하지는 않지만 Excel 기능을 위해 외부 CDN의 라이브러리를 불러옵니다.<br>
-     • <b>기기 보안</b>: 휴대폰 잠금과 브라우저·기기 계정 보안은 사용자가 관리해야 합니다.<br>
-     • <b>삭제</b>: 기록 삭제 후에도 휴지통에 남아 있으며, 영구 삭제 또는 휴지통 비우기를 해야 완전히 제거됩니다.
-    </div>
-   </details>
- </div>
-
- <div class="card"><b>📤 앱 공유</b>
-   <p class="muted">대상자 자료는 공유하지 않고, 만남 체크북 웹앱 주소만 공유합니다.</p>
-   <button class="primary" style="width:100%" onclick="shareApp()">📤 앱 주소 공유</button>
- </div>
-
- <div class="card"><b>🔐 앱 잠금</b>
-   <p class="muted">${security.enabled?'현재 숫자 4자리 비밀번호 보호가 사용 중입니다.':'현재 비밀번호 없이 사용 중입니다.'}</p>
-   ${security.enabled?`<div class="actions" style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><button onclick="changePassword()">비밀번호 변경</button><button onclick="lockApp()">🔒 지금 잠그기</button></div><button class="danger" style="width:100%;margin-top:8px" onclick="disablePassword()">🔓 비밀번호 사용 안 함</button>`:`<button class="primary" style="width:100%" onclick="startPasswordSetup()">🔒 비밀번호 사용</button>`}
-   <div style="display:flex;align-items:center;gap:8px;margin-top:10px"><label class="muted" style="flex:1">자동 잠금</label><select onchange="setAutoLock(this.value)" style="width:auto"><option value="0" ${security.autoLockMinutes===0?'selected':''}>사용 안 함</option><option value="5" ${security.autoLockMinutes===5?'selected':''}>5분</option><option value="10" ${security.autoLockMinutes===10?'selected':''}>10분</option><option value="30" ${security.autoLockMinutes===30?'selected':''}>30분</option></select></div>
-   <div class="warn" style="margin-top:10px">비밀번호를 잊으면 암호화된 데이터를 복구할 수 없습니다.</div>
- </div>
-
- <div class="card"><b>📖 사용법 안내</b>
-   <details class="help-details">
-    <summary class="help-summary">기본 사용법 보기</summary>
-    <div class="help-body">
-     <b>① 새 체크북 만들기</b><br>NEW에서 업무 주제를 선택하고 명단을 불러오거나 직접 추가합니다.<br><br>
-     <b>② 대상자 체크</b><br>체크 메뉴에서 이름을 검색하거나 🎙️ 음성으로 찾아 체크합니다. 전화번호가 있으면 📞 버튼으로 바로 전화할 수 있습니다.<br><br>
-     <b>③ 방문상담·안부확인 등</b><br>필요하면 본인·가족·기타 관계와 만난 시간을 기록하고 메모를 남길 수 있습니다.<br><br>
-     <b>④ 동선 만들기</b><br>🚗 동선 만들기에서 방문할 사람을 선택하고 가까운 순서·먼 순서 또는 선택한 순서를 정합니다. 실제 길찾기는 🧭 길찾기로 네이버지도를 사용합니다.<br><br>
-     <b>⑤ 기록 확인</b><br>목록에서 기존 체크북을 열거나 Excel로 저장할 수 있습니다.<br><br>
-     <b>⑥ 삭제한 기록</b><br>삭제한 기록은 휴지통으로 이동합니다. 완전히 삭제하려면 휴지통에서 영구 삭제하거나 휴지통을 비우세요.
-    </div>
-   </details>
- </div>
-
- <div class="card"><b>🗑️ 기록 휴지통</b><p class="muted">삭제한 기록은 휴지통으로 이동하며, 직접 영구 삭제하기 전까지 보관됩니다.</p><div id="trashList">${trashHtml}</div>${trash.length?'<button style="width:100%;margin-top:10px" onclick="emptyTrash()">휴지통 비우기</button>':''}</div>
- `;
+function manageIcon(type){
+ const c='viewBox="0 0 48 48" aria-hidden="true"';
+ const i={
+ lock:`<svg ${c}><rect x="12" y="21" width="24" height="20" rx="3"/><path d="M17 21v-6a7 7 0 0 1 14 0v6"/><circle cx="24" cy="31" r="1.5" fill="currentColor" stroke="none"/><path d="M24 32.5v4"/></svg>`,
+ share:`<svg ${c}><circle cx="14" cy="24" r="4"/><circle cx="34" cy="13" r="4"/><circle cx="34" cy="35" r="4"/><path d="M17.5 22l12.5-7M17.5 26l12.5 7"/></svg>`,
+ book:`<svg ${c}><path d="M10 9c5-2 9-1 14 2v28c-5-3-9-4-14-2z"/><path d="M38 9c-5-2-9-1-14 2v28c5-3 9-4 14-2z"/></svg>`,
+ data:`<svg ${c}><ellipse cx="24" cy="12" rx="11" ry="5"/><path d="M13 12v16c0 3 5 5 11 5s11-2 11-5V12M13 20c0 3 5 5 11 5s11-2 11-5"/><circle cx="35" cy="36" r="4"/><path d="M35 34v2l1.5 1"/></svg>`,
+ trash:`<svg ${c}><path d="M12 14h24M19 14V9h10v5"/><rect x="15" y="14" width="18" height="27" rx="2"/><path d="M21 20v14M27 20v14"/></svg>`,
+ reset:`<svg ${c}><path d="M12 21a13 13 0 1 1 3 12"/><path d="M12 21v-8h8"/></svg>`}; return i[type]||'';
 }
+function openManageDetail(type){
+ const m=document.getElementById('manageDetailModal'); if(!m)return; const t=document.getElementById('manageDetailTitle'),b=document.getElementById('manageDetailBody'); let h='';
+ if(type==='lock'){t.textContent='앱 잠금';h=`<p class="muted">${security.enabled?'현재 숫자 4자리 비밀번호 보호가 사용 중입니다.':'현재 비밀번호 없이 사용 중입니다.'}</p>${security.enabled?`<div class="actions" style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><button onclick="changePassword();closeManageDetail()">비밀번호 변경</button><button onclick="lockApp();closeManageDetail()">🔒 지금 잠그기</button></div><button class="danger" style="width:100%;margin-top:8px" onclick="disablePassword();closeManageDetail()">🔓 비밀번호 사용 안 함</button>`:`<button class="primary" style="width:100%" onclick="startPasswordSetup();closeManageDetail()">🔒 비밀번호 사용</button>`}`}
+ else if(type==='share'){t.textContent='앱 공유';h=`<p class="muted">대상자 자료는 공유하지 않고 방문 체크북 앱 주소만 공유합니다.</p><button class="primary" style="width:100%" onclick="shareApp();closeManageDetail()">📤 앱 주소 공유</button>`}
+ else if(type==='help'){t.textContent='사용 안내';h=`<div class="help-body"><b>① 새 체크북 만들기</b><br>NEW에서 업무 주제를 선택하고 명단을 불러오거나 직접 추가합니다.<br><br><b>② 대상자 체크</b><br>체크 메뉴에서 이름을 검색하거나 음성으로 찾아 체크합니다.<br><br><b>③ 동선 만들기</b><br>방문할 사람을 선택하고 방문 순서를 정합니다.<br><br><b>④ 개인정보 보호</b><br>명단과 기록은 기본적으로 이 기기의 브라우저 저장공간에 보관됩니다.</div>`}
+ else if(type==='data'){t.textContent='데이터 관리';h=`<p class="muted">명단과 기록은 원칙적으로 이 기기의 브라우저 저장공간에 보관됩니다.</p><div class="actions" style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><button onclick="document.getElementById('excelFile')?.click();closeManageDetail()">📥 명단 가져오기</button><button onclick="exportCurrentRecord();closeManageDetail()">📤 기록 내보내기</button></div><input id="excelFile" type="file" accept=".xlsm,.xlsx,.xls" style="display:none" onchange="importExcel()">`}
+ else if(type==='trash'){const tr=Array.isArray(state.trash)?state.trash:[];const list=!tr.length?'<div class="muted">휴지통이 비어 있습니다.</div>':tr.slice().reverse().map(r=>`<div class="record"><b>${esc(r.title)}</b><div class="muted">${esc(r.date)}</div><div class="actions" style="margin-top:8px"><button class="small" onclick="restoreTrash('${String(r.id).replace(/'/g,"\\'")}');closeManageDetail()">↩ 복원</button><button class="small danger" onclick="permanentDeleteTrash('${String(r.id).replace(/'/g,"\\'")}');closeManageDetail()">영구 삭제</button></div></div>`).join('');t.textContent='휴지통';h=`<p class="muted">삭제된 기록은 휴지통에 보관됩니다.</p>${list}${tr.length?'<button style="width:100%;margin-top:10px" onclick="emptyTrash();closeManageDetail()">휴지통 비우기</button>':''}`}
+ else if(type==='reset'){t.textContent='초기화';h=`<p class="muted">모든 명단과 기록, 휴지통을 포함한 앱 데이터를 삭제합니다.</p><div class="warn">삭제한 데이터는 되돌릴 수 없습니다.</div><button class="danger" style="width:100%" onclick="resetAll();closeManageDetail()">모든 데이터 초기화</button>`}
+ b.innerHTML=h;m.classList.add('show');
+}
+function closeManageDetail(){document.getElementById('manageDetailModal')?.classList.remove('show')}
+function renderManage(){main.innerHTML=`<div class="manage-screen"><div class="manage-topbar"><button class="manage-back" onclick="tab='check';render()" aria-label="뒤로">‹</button><div class="manage-heading">관리</div></div><div class="manage-list">
+<button class="manage-item" onclick="openManageDetail('lock')"><span class="manage-item-icon orange">${manageIcon('lock')}</span><span class="manage-item-copy"><strong>앱 잠금</strong><span>${security.enabled?'비밀번호 설정 · 현재 사용 중':'비밀번호 설정'}</span></span><span class="manage-arrow">›</span></button>
+<button class="manage-item" onclick="openManageDetail('share')"><span class="manage-item-icon blue">${manageIcon('share')}</span><span class="manage-item-copy"><strong>앱 공유</strong><span>앱 주소만 공유합니다</span></span><span class="manage-arrow">›</span></button>
+<button class="manage-item" onclick="openManageDetail('help')"><span class="manage-item-icon blue">${manageIcon('book')}</span><span class="manage-item-copy"><strong>사용 안내</strong><span>앱 사용 방법 보기</span></span><span class="manage-arrow">›</span></button>
+<button class="manage-item" onclick="openManageDetail('data')"><span class="manage-item-icon gray">${manageIcon('data')}</span><span class="manage-item-copy"><strong>데이터 관리</strong><span>내보내기 · 가져오기</span></span><span class="manage-arrow">›</span></button>
+<button class="manage-item" onclick="openManageDetail('trash')"><span class="manage-item-icon red">${manageIcon('trash')}</span><span class="manage-item-copy"><strong>휴지통</strong><span>삭제된 항목 복원</span></span><span class="manage-arrow">›</span></button>
+<button class="manage-item" onclick="openManageDetail('reset')"><span class="manage-item-icon red">${manageIcon('reset')}</span><span class="manage-item-copy"><strong>초기화</strong><span>모든 데이터 삭제</span></span><span class="manage-arrow">›</span></button></div></div>`}
+
+function exportCurrentRecord(){const r=getRecord(false);if(!r||!(r.people||[]).length){alert('내보낼 기록이 없습니다.');return}exportExcel(r)}
 function restoreTrash(id){
  const idx=state.trash.findIndex(x=>String(x.id)===String(id));
  if(idx<0){alert('휴지통에서 기록을 찾을 수 없습니다.');return}
@@ -1015,5 +1008,6 @@ function emptyTrash(){
 function resetAll(){if(confirm('모든 명단과 기록을 삭제할까요?')){localStorage.removeItem(KEY);localStorage.removeItem(LOCK_KEY);localStorage.removeItem(GEOCODE_CACHE_KEY);location.reload()}}
 function toast(t){const e=document.getElementById('toast');e.textContent=t;e.style.display='block';clearTimeout(window.toastTimer);window.toastTimer=setTimeout(()=>e.style.display='none',1500)}
 bootSecurity();
+setTimeout(()=>document.getElementById('splash')?.classList.add('hide'),1300);
 </script>
 </body></html>
