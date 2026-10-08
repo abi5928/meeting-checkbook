@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#4f7cff">
 <link rel="manifest" href="manifest.json">
-<title>만남 체크북 2.0</title>
+<title>만남 체크북 2.11</title>
 <style>
 .call{display:inline-flex;text-decoration:none;align-items:center;justify-content:center;min-width:42px;}
 *{box-sizing:border-box}body{margin:0;background:#f3f6fb;color:#182235;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans KR",sans-serif}
@@ -102,22 +102,127 @@ nav button{flex:1;background:none;font-size:11px;padding:7px 2px;color:#6d7788}n
  </div>
  </div></div>
 
+<div class="modal" id="lockOverlay" style="display:none;z-index:100;align-items:center;background:#eef2f8ee"><div class="sheet" style="border-radius:22px;max-height:90vh">
+ <div id="lockContent"></div>
+</div></div>
 <div class="toast" id="toast"></div>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script>
 const KEY='welfare_checkbook_from_attendance_v1';
-let state=JSON.parse(localStorage.getItem(KEY)||'null')||{
+const LOCK_KEY='welfare_checkbook_security_v1';
+const PBKDF2_ITERATIONS=150000;
+let security={enabled:false,autoLockMinutes:0,salt:null,iterations:PBKDF2_ITERATIONS};
+let cryptoKey=null,appUnlocked=false,saveChain=Promise.resolve(),lockTimer=null,lastActivity=Date.now();
+function defaultState(){return {
  people:[
   {id:'1',name:'김창억',birth:'1949-05-01',phone:'',address:''},{id:'2',name:'박수직',birth:'1951-04-11',phone:'',address:''},
   {id:'3',name:'조강하',birth:'1956-05-01',phone:'',address:''},{id:'4',name:'구조대',birth:'1948-07-05',phone:'',address:''},
   {id:'5',name:'구조대',birth:'1950-05-08',phone:'',address:''},{id:'6',name:'한사방',birth:'1952-02-17',phone:'',address:''},
   {id:'7',name:'고용대',birth:'1955-10-03',phone:'',address:''},{id:'8',name:'최수몽',birth:'1958-12-22',phone:'',address:''}
  ],records:[],trash:[],title:'출석체크',topicType:'출석체크',date:new Date().toISOString().slice(0,10)
-};
+}}
+let state=defaultState();
 if(!Array.isArray(state.trash)) state.trash=[];
 let tab='check',query='',deleteMode=false,deleteSelected=new Set(),activeRecordId=null,memoPersonId=null,specialPersonId=null;
 
-function save(){localStorage.setItem(KEY,JSON.stringify(state))}
+function getSecurityMeta(){try{return JSON.parse(localStorage.getItem(LOCK_KEY)||'null')}catch(e){return null}}
+function setSecurityMeta(){localStorage.setItem(LOCK_KEY,JSON.stringify({v:1,enabled:!!security.enabled,autoLockMinutes:Number(security.autoLockMinutes)||0,salt:security.salt,iterations:security.iterations||PBKDF2_ITERATIONS}))}
+function randomBytes(n){const a=new Uint8Array(n);crypto.getRandomValues(a);return a}
+function bytesToB64(bytes){let s='';bytes.forEach(b=>s+=String.fromCharCode(b));return btoa(s)}
+function b64ToBytes(s){const bin=atob(s);const a=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)a[i]=bin.charCodeAt(i);return a}
+async function deriveKey(password,saltB64,iterations=PBKDF2_ITERATIONS){
+ const base=await crypto.subtle.importKey('raw',new TextEncoder().encode(password),'PBKDF2',false,['deriveKey']);
+ return crypto.subtle.deriveKey({name:'PBKDF2',salt:b64ToBytes(saltB64),iterations,hash:'SHA-256'},base,{name:'AES-GCM',length:256},false,['encrypt','decrypt']);
+}
+async function encryptStateWithKey(key,obj){
+ const iv=randomBytes(12),plain=new TextEncoder().encode(JSON.stringify(obj));
+ const data=await crypto.subtle.encrypt({name:'AES-GCM',iv},key,plain);
+ return JSON.stringify({v:1,alg:'AES-GCM',iv:bytesToB64(iv),data:bytesToB64(new Uint8Array(data))});
+}
+async function decryptStateWithKey(key,stored){
+ const obj=JSON.parse(stored),plain=await crypto.subtle.decrypt({name:'AES-GCM',iv:b64ToBytes(obj.iv)},key,b64ToBytes(obj.data));
+ return JSON.parse(new TextDecoder().decode(plain));
+}
+function save(){
+ if(security.enabled && cryptoKey){
+  const snapshot=JSON.parse(JSON.stringify(state));
+  const key=cryptoKey;
+  saveChain=saveChain.then(async()=>{if(key)localStorage.setItem(KEY,await encryptStateWithKey(key,snapshot))}).catch(()=>{});
+ }else{
+  localStorage.setItem(KEY,JSON.stringify(state));
+ }
+}
+function touchActivity(){if(!appUnlocked)return;lastActivity=Date.now();if(security.enabled&&security.autoLockMinutes>0)scheduleAutoLock()}
+function scheduleAutoLock(){clearTimeout(lockTimer);if(!security.enabled||!security.autoLockMinutes||!appUnlocked)return;lockTimer=setTimeout(()=>{if(Date.now()-lastActivity>=security.autoLockMinutes*60000)lockApp();else scheduleAutoLock()},security.autoLockMinutes*60000)}
+function installActivityWatch(){['touchstart','mousedown','keydown','scroll'].forEach(ev=>document.addEventListener(ev,touchActivity,{passive:true}));document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')touchActivity()})}
+function showLock(title,html){document.getElementById('lockContent').innerHTML='<h2 style="margin-top:0">'+title+'</h2>'+html;document.getElementById('lockOverlay').style.display='flex'}
+function hideLock(){document.getElementById('lockOverlay').style.display='none'}
+function setupSecurity(){
+ showLock('🔐 만남 체크북 보안 설정',`<p class="muted" style="line-height:1.6">이 앱은 휴대폰에 대상자 명단과 기록을 저장합니다.<br>앱 잠금을 사용하시겠습니까?</p>
+ <button class="primary" style="width:100%;margin-top:8px;padding:14px" onclick="startPasswordSetup()">🔒 비밀번호 사용</button>
+ <button style="width:100%;margin-top:8px;padding:14px" onclick="chooseNoPassword()">🔓 비밀번호 사용 안 함</button>
+ <div class="warn" style="margin-top:12px">비밀번호를 사용하지 않아도 됩니다. 나중에 <b>관리 → 앱 잠금</b>에서 언제든지 설정할 수 있습니다.<br>공용으로 사용하는 휴대폰에서는 앱 잠금 사용을 권장합니다.</div>`)
+}
+function startPasswordSetup(){
+ showLock('🔒 비밀번호 설정',`<p class="muted">공용으로 사용하는 휴대폰이라면 앱 잠금 사용을 권장합니다.</p>
+ <input id="setupPw" type="password" autocomplete="new-password" placeholder="비밀번호" style="margin-top:8px">
+ <input id="setupPw2" type="password" autocomplete="new-password" placeholder="비밀번호 확인" style="margin-top:8px">
+ <div id="setupMsg" class="warn" style="display:none"></div>
+ <button class="primary" style="width:100%;margin-top:10px;padding:13px" onclick="completePasswordSetup()">비밀번호 사용 시작</button>
+ <button class="close" onclick="setupSecurity()">뒤로</button>`)
+}
+async function completePasswordSetup(){
+ const p=document.getElementById('setupPw').value,p2=document.getElementById('setupPw2').value,msg=document.getElementById('setupMsg');
+ if(p.length<4){msg.textContent='비밀번호는 4자 이상 입력하세요.';msg.style.display='block';return}
+ if(p!==p2){msg.textContent='비밀번호가 일치하지 않습니다.';msg.style.display='block';return}
+ security={enabled:true,autoLockMinutes:0,salt:bytesToB64(randomBytes(16)),iterations:PBKDF2_ITERATIONS};
+ localStorage.removeItem(GEOCODE_CACHE_KEY);
+ cryptoKey=await deriveKey(p,security.salt,security.iterations);setSecurityMeta();save();appUnlocked=true;hideLock();installActivityWatch();const dp=document.getElementById('datePicker');if(dp)dp.value=state.date;render();toast('🔒 앱 잠금이 설정되었습니다.');
+}
+function chooseNoPassword(){
+ security={enabled:false,autoLockMinutes:0,salt:null,iterations:PBKDF2_ITERATIONS};cryptoKey=null;setSecurityMeta();
+ try{const raw=localStorage.getItem(KEY);if(raw){const parsed=JSON.parse(raw);if(parsed&&parsed.data&&parsed.iv){alert('암호화된 기록은 현재 비밀번호가 필요합니다.');return}}}catch(e){}
+ appUnlocked=true;hideLock();installActivityWatch();const dp=document.getElementById('datePicker');if(dp)dp.value=state.date;render();alert('비밀번호를 사용하지 않고 시작합니다.\n나중에 필요하면 관리 → 앱 잠금에서 설정할 수 있습니다.');
+}
+async function unlockWithPassword(){
+ const input=document.getElementById('unlockPw'),msg=document.getElementById('unlockMsg'),p=input.value;if(!p){msg.textContent='비밀번호를 입력하세요.';msg.style.display='block';return}
+ try{
+  cryptoKey=await deriveKey(p,security.salt,security.iterations||PBKDF2_ITERATIONS);
+  const raw=localStorage.getItem(KEY);state=await decryptStateWithKey(cryptoKey,raw);if(!Array.isArray(state.trash))state.trash=[];
+  appUnlocked=true;hideLock();installActivityWatch();const dp=document.getElementById('datePicker');if(dp)dp.value=state.date;render();touchActivity();
+ }catch(e){cryptoKey=null;msg.textContent='비밀번호가 맞지 않거나 저장된 데이터가 손상되었습니다.';msg.style.display='block';input.select()}
+}
+function showUnlock(){showLock('🔒 앱 잠금',`<p class="muted">만남 체크북을 사용하려면 비밀번호를 입력하세요.</p><input id="unlockPw" type="password" autocomplete="current-password" placeholder="비밀번호" style="margin-top:8px"><div id="unlockMsg" class="warn" style="display:none"></div><button class="primary" style="width:100%;margin-top:10px;padding:13px" onclick="unlockWithPassword()">잠금 해제</button>`);setTimeout(()=>document.getElementById('unlockPw')?.focus(),50)}
+async function bootSecurity(){
+ const meta=getSecurityMeta(),raw=localStorage.getItem(KEY);
+ if(meta&&meta.enabled){security=meta;showUnlock();return}
+ if(!meta){
+  // 기존 v2.10 사용자도 첫 실행 시 보안 방식을 선택할 수 있도록 안내한다.
+  if(raw){try{state=JSON.parse(raw)}catch(e){state=defaultState()}}
+  setupSecurity();return;
+ }
+ security=meta;security.enabled=false;cryptoKey=null;
+ if(raw){try{state=JSON.parse(raw)}catch(e){state=defaultState()}}
+ appUnlocked=true;installActivityWatch();const dp=document.getElementById('datePicker');if(dp)dp.value=state.date;render();
+}
+async function lockApp(){if(!security.enabled||!appUnlocked)return;appUnlocked=false;cryptoKey=null;clearTimeout(lockTimer);showUnlock()}
+async function changePassword(){
+ if(!security.enabled||!cryptoKey){startPasswordSetup();return}
+ const old=prompt('현재 비밀번호를 입력하세요.');if(old===null)return;
+ try{const k=await deriveKey(old,security.salt,security.iterations||PBKDF2_ITERATIONS);await decryptStateWithKey(k,localStorage.getItem(KEY))}catch(e){alert('현재 비밀번호가 맞지 않습니다.');return}
+ const np=prompt('새 비밀번호를 입력하세요.');if(np===null)return;if(np.length<4){alert('비밀번호는 4자 이상 입력하세요.');return}
+ const np2=prompt('새 비밀번호를 다시 입력하세요.');if(np!==np2){alert('새 비밀번호가 일치하지 않습니다.');return}
+ security.salt=bytesToB64(randomBytes(16));cryptoKey=await deriveKey(np,security.salt,security.iterations||PBKDF2_ITERATIONS);setSecurityMeta();save();toast('비밀번호가 변경되었습니다.');
+}
+async function disablePassword(){
+ if(!security.enabled||!cryptoKey)return;
+ if(!confirm('비밀번호 사용을 해제할까요?\n이후에는 기기의 브라우저 저장공간에 암호화되지 않은 형태로 저장됩니다.'))return;
+ const current=prompt('현재 비밀번호를 입력하세요.');if(current===null)return;
+ try{const k=await deriveKey(current,security.salt,security.iterations||PBKDF2_ITERATIONS);state=await decryptStateWithKey(k,localStorage.getItem(KEY))}catch(e){alert('현재 비밀번호가 맞지 않습니다.');return}
+ security={enabled:false,autoLockMinutes:0,salt:null,iterations:PBKDF2_ITERATIONS};cryptoKey=null;setSecurityMeta();save();toast('비밀번호 사용을 해제했습니다.');render();
+}
+function setAutoLock(v){security.autoLockMinutes=Number(v)||0;setSecurityMeta();if(security.autoLockMinutes)scheduleAutoLock();else clearTimeout(lockTimer);toast('자동 잠금 설정이 저장되었습니다.')}
+
 function esc(s){return String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
 function nameNorm(s){return String(s||'').replace(/\s+/g,'').toLowerCase()}
 function phoneNorm(s){return String(s||'').replace(/[^\d+]/g,'')}
@@ -453,8 +558,8 @@ let routeCoords=null;
 let routeDistances={};
 let routeMode='near';
 const GEOCODE_CACHE_KEY='meeting_checkbook_geocode_v1';
-function loadGeocodeCache(){try{return JSON.parse(localStorage.getItem(GEOCODE_CACHE_KEY)||'{}')}catch(e){return {}}}
-function saveGeocodeCache(c){localStorage.setItem(GEOCODE_CACHE_KEY,JSON.stringify(c))}
+function loadGeocodeCache(){if(security.enabled)return {};try{return JSON.parse(localStorage.getItem(GEOCODE_CACHE_KEY)||'{}')}catch(e){return {}}}
+function saveGeocodeCache(c){if(security.enabled)return;localStorage.setItem(GEOCODE_CACHE_KEY,JSON.stringify(c))}
 function sleep(ms){return new Promise(r=>setTimeout(r,ms))}
 function haversineKm(a,b){
  const R=6371,rad=Math.PI/180;
@@ -485,7 +590,7 @@ function openNaverCarRouteById(id){
   try{
    const coord=await geocodeAddress(p.address);
    if(!coord){alert(p.name+'님의 주소를 지도 좌표로 찾지 못했습니다.\n주소: '+p.address);return}
-   const params='dlat='+encodeURIComponent(coord.lat)+'&dlng='+encodeURIComponent(coord.lon)+'&dname='+encodeURIComponent(p.name+' · '+p.address)+'&appname='+appName;
+   const params='dlat='+encodeURIComponent(coord.lat)+'&dlng='+encodeURIComponent(coord.lon)+'&dname='+encodeURIComponent('방문지')+'&appname='+appName;
    const nmap='nmap://route/car?'+params;
    const intent='intent://route/car?'+params+'#Intent;scheme=nmap;action=android.intent.action.VIEW;category=android.intent.category.BROWSABLE;package=com.nhn.android.nmap;end';
    const ua=navigator.userAgent;
@@ -644,6 +749,7 @@ async function buildRouteList(){
  }
  if(!routeCoords){alert('먼저 📍 현재 위치 확인을 눌러 출발 위치를 확인하세요.');return}
  const people=getRoutePeople();
+ if(!confirm('가까운 순서/먼 순서를 만들려면 선택한 대상자의 주소를 외부 지도 서비스에 보내 위치를 확인해야 합니다.\n\n주소만 전송하며 이름·전화번호·메모는 전송하지 않습니다.\n\n외부 전송 없이 방문순서를 만들려면 ‘선택한 순서’를 이용하세요.\n\n계속할까요?')) return;
  const noAddress=people.filter(p=>!String(p.address||'').trim());
  if(noAddress.length){alert('다음 대상자는 주소가 없어 거리 계산을 할 수 없습니다.\n\n'+noAddress.map(p=>p.name).join(', ')+'\n\n주소를 입력한 뒤 다시 시도하세요.');return}
  const btn=document.querySelector('#routeModal button.primary');
@@ -782,8 +888,29 @@ function renderManage(){
      return `<div class="record"><b>${esc(r.title)}</b><div class="muted">${esc(r.date)} · ${n}명/${total}명 체크${deleted?' · 삭제 '+esc(deleted):''}</div><div class="actions" style="margin-top:8px"><button class="small" onclick="restoreTrash('${String(r.id).replace(/'/g,"\\'")}')">↩ 복원</button><button class="small danger" onclick="permanentDeleteTrash('${String(r.id).replace(/'/g,"\\'")}')">영구 삭제</button></div></div>`;
    }).join('');
  }
- main.innerHTML=`<div class="card"><b>관리</b><p class="muted">현재 기기의 브라우저에 명단과 기록이 저장됩니다.</p><button class="danger" onclick="resetAll()">전체 데이터 초기화</button></div>
+ main.innerHTML=`<div class="card"><b>관리</b><p class="muted">명단과 기록은 원칙적으로 이 기기의 브라우저 저장공간에 보관됩니다. 별도 서버에 기록을 저장하지 않습니다.</p><button class="danger" onclick="resetAll()">전체 데이터 초기화</button></div>
+ <div class="card"><b>🔐 정보보호 안내</b>
+ <div class="ok">이 앱은 복지대상자의 개인정보를 별도 서버에 저장하지 않고, 현재 기기의 브라우저에 저장하는 것을 기본으로 합니다.</div>
+ <p class="muted" style="line-height:1.65">
+ • <b>명단·체크·메모</b>: 현재 기기의 브라우저 저장공간(localStorage)에 보관됩니다.<br>
+ • <b>동선 만들기</b>: ‘가까운 순서/먼 순서’를 선택할 때에만 주소를 지도 좌표로 바꾸기 위해 외부 지도 서비스로 주소가 전송됩니다. 이 과정은 HTTPS로 전송되며, 주소 외의 이름·전화번호·메모는 보내지 않습니다.<br>
+ • <b>선택한 순서</b>: 외부 지도 서비스로 주소를 보내지 않고, 사용자가 선택한 순서를 그대로 사용합니다.<br>
+ • <b>길찾기</b>: 사용자가 ‘🧭 길찾기’를 누른 경우에만 다음 방문지의 위치정보가 네이버지도로 전달됩니다. 개인정보 최소화를 위해 이름은 네이버지도에 전달하지 않습니다.<br>
+ • <b>음성 입력</b>: 브라우저의 음성인식 기능을 사용하므로 음성 처리 방식은 사용하는 기기·브라우저의 정책에 따라 달라질 수 있습니다.<br>
+ • <b>Excel</b>: 가져오기·내보내기는 가능한 한 브라우저 안에서 처리하며, Excel 라이브러리는 외부 CDN에서 불러옵니다. 명단 자체를 CDN으로 전송하는 기능은 없습니다.<br>
+ • <b>기기 보안</b>: 저장된 정보는 브라우저 저장공간에 있으므로 휴대폰 잠금, 브라우저·기기 계정 보안, 타인과의 기기 공유 여부 등 기기 내부 정보 관리는 사용자의 책임이 우선합니다.<br>
+ • <b>삭제</b>: 기록 삭제는 먼저 휴지통으로 이동합니다. 완전히 없애려면 휴지통에서 ‘영구 삭제’ 또는 ‘휴지통 비우기’를 해야 합니다.
+ </p>
+ <div class="warn">주의: 외부 지도 서비스가 필요한 기능까지 포함하여 ‘모든 정보가 기기 밖으로 절대 나가지 않는다’고 보장하는 앱은 아닙니다. 민감한 개인정보를 입력할 때는 업무기관의 개인정보 처리기준과 보안정책을 함께 확인하세요.</div>
+ </div>
+ <div class="card"><b>🔐 앱 잠금</b>
+ <p class="muted">${security.enabled?'현재 비밀번호 보호가 사용 중입니다.':'현재 비밀번호 없이 사용 중입니다.'}</p>
+ ${security.enabled?`<div class="actions" style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><button onclick="changePassword()">비밀번호 변경</button><button onclick="lockApp()">🔒 지금 잠그기</button></div><button class="danger" style="width:100%;margin-top:8px" onclick="disablePassword()">🔓 비밀번호 사용 안 함</button>`:`<button class="primary" style="width:100%" onclick="startPasswordSetup()">🔒 비밀번호 사용</button>`}
+ <div style="display:flex;align-items:center;gap:8px;margin-top:10px"><label class="muted" style="flex:1">자동 잠금</label><select onchange="setAutoLock(this.value)" style="width:auto"><option value="0" ${security.autoLockMinutes===0?'selected':''}>사용 안 함</option><option value="5" ${security.autoLockMinutes===5?'selected':''}>5분</option><option value="10" ${security.autoLockMinutes===10?'selected':''}>10분</option><option value="30" ${security.autoLockMinutes===30?'selected':''}>30분</option></select></div>
+ <div class="warn" style="margin-top:10px">비밀번호를 잊으면 이 앱에서 저장된 암호화 데이터를 복구할 수 없습니다. 별도의 비밀번호 복구 기능은 두지 않습니다.</div>
+ </div>
  <div class="card"><b>🗑️ 기록 휴지통</b><p class="muted">삭제한 기록은 휴지통으로 이동하며, 직접 영구 삭제하기 전까지 보관됩니다.</p><div id="trashList">${trashHtml}</div>${trash.length?'<button style="width:100%;margin-top:10px" onclick="emptyTrash()">휴지통 비우기</button>':''}</div>
+ <div class="card"><b>보호 기준</b><p class="muted">정보보호 안내 · 외부 전송은 필요한 기능에서만 최소화합니다.</p></div>
  <div class="card"><b>사용 순서</b><p class="muted">① 체크 항목 입력 → ② 이름 검색 또는 🎙️ 음성 → ③ 체크 → ④ 필요하면 아래에서 대상자 추가·삭제 → ⑤ 목록에서 Excel 저장</p></div>`;
 }
 function restoreTrash(id){
@@ -808,8 +935,8 @@ function emptyTrash(){
  if(!confirm(`휴지통의 ${state.trash.length}개 기록을 모두 영구 삭제할까요?\n삭제 후에는 복원할 수 없습니다.`))return;
  state.trash=[];save();render();toast('휴지통을 비웠습니다.');
 }
-function resetAll(){if(confirm('모든 명단과 기록을 삭제할까요?')){localStorage.removeItem(KEY);location.reload()}}
+function resetAll(){if(confirm('모든 명단과 기록을 삭제할까요?')){localStorage.removeItem(KEY);localStorage.removeItem(LOCK_KEY);localStorage.removeItem(GEOCODE_CACHE_KEY);location.reload()}}
 function toast(t){const e=document.getElementById('toast');e.textContent=t;e.style.display='block';clearTimeout(window.toastTimer);window.toastTimer=setTimeout(()=>e.style.display='none',1500)}
-render();
+bootSecurity();
 </script>
 </body></html>
