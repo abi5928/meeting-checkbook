@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#4f7cff">
 <link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
 <title>방문 체크북</title>
 <style>
 html,body{width:100%;max-width:100%;overflow-x:hidden;-webkit-text-size-adjust:100%}
@@ -113,6 +114,23 @@ nav button{flex:1;background:none;font-size:12px;padding:7px 2px;color:#6d7788;l
 
 /* v10 버튼 규칙: 박스 크기는 고정, 글씨만 확대 */
 .check-route-card{min-height:56px!important;padding:8px 52px!important}.check-route-card span:first-child{font-size:21px!important}.check-manage-actions button{min-height:52px!important;height:52px!important;font-size:19px!important}.check-excel-btn{min-height:52px!important;height:52px!important;font-size:19px!important}
+
+/* v11 디자인 비율 보정 — 승인된 체크 목업을 기준으로 박스와 글씨의 비율을 통일 */
+.check-route-card{min-height:52px!important;height:52px!important;padding:8px 48px!important;border-radius:16px!important}
+.check-route-card span:first-child{font-size:16px!important;line-height:1!important;font-weight:900!important}
+.check-route-card span:last-child{right:16px;font-size:29px!important}
+.check-manage-actions{gap:12px!important}
+.check-manage-actions button{height:52px!important;min-height:52px!important;padding:0 10px!important;font-size:17px!important;line-height:1!important}
+.check-excel-btn{height:52px!important;min-height:52px!important;padding:0 12px!important;font-size:17px!important;line-height:1!important}
+/* 날짜 카드: 목업처럼 카드 높이에 비해 날짜/체크 텍스트가 과도하게 커지지 않도록 조정 */
+.check-date-card{padding:13px 14px!important;border-radius:18px!important}
+.check-date-text{font-size:15px!important;line-height:1.25!important}
+.check-date-change{font-size:12px!important;padding:8px 11px!important}
+.check-count-row strong{font-size:20px!important;line-height:1.15!important}
+.check-count-row span{font-size:12px!important}
+/* 초기 보안 설정도 관리 화면과 같은 카드 비율을 사용하되 불필요한 확인 단계는 두지 않음 */
+.security-actions{gap:10px!important}
+.security-primary,.security-secondary{min-height:64px!important;height:64px!important}
 </style>
 </head>
 <body>
@@ -278,7 +296,7 @@ async function completePasswordSetup(){
 function chooseNoPassword(){
  security={enabled:false,autoLockMinutes:0,salt:null,iterations:PBKDF2_ITERATIONS,setupComplete:true};cryptoKey=null;setSecurityMeta();
  try{const raw=localStorage.getItem(KEY);if(raw){const parsed=JSON.parse(raw);if(parsed&&parsed.data&&parsed.iv){alert('암호화된 기록은 현재 비밀번호가 필요합니다.');return}}}catch(e){}
- appUnlocked=true;hideLock();installActivityWatch();const dp=document.getElementById('datePicker');if(dp)dp.value=state.date;render();alert('비밀번호를 사용하지 않고 시작합니다.\n나중에 필요하면 관리 → 앱 잠금에서 설정할 수 있습니다.');
+ appUnlocked=true;hideLock();installActivityWatch();const dp=document.getElementById('datePicker');if(dp)dp.value=state.date;render();
 }
 async function unlockWithPassword(){
  const input=document.getElementById('unlockPw'),msg=document.getElementById('unlockMsg'),p=input.value;if(!p){msg.textContent='비밀번호를 입력하세요.';msg.style.display='block';return}
