@@ -134,7 +134,8 @@ nav button{flex:1;background:none;font-size:12px;padding:7px 2px;color:#6d7788;l
 .security-primary,.security-secondary{min-height:64px!important;height:64px!important}
 
 /* v14: 날짜 변경은 별도 중간 화면 없이 기기 기본 날짜 선택기로 바로 연결 */
-#checkDatePicker{position:fixed;left:-100px;top:50%;width:2px;height:2px;opacity:.01;pointer-events:none;border:0!important;background:transparent!important}
+#checkDatePicker{display:none!important}
+#nativeDatePicker{position:fixed;left:1px;top:1px;width:1px;height:1px;opacity:.01;z-index:9999;border:0;padding:0;pointer-events:auto}
 .route-sheet-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px}
 .route-switch-single{grid-template-columns:1fr!important}
 .route-modal-sheet{padding-bottom:calc(96px + env(safe-area-inset-bottom))!important}
@@ -219,7 +220,7 @@ body.route-open nav button.active{color:#2563eb}
 <div class="modal" id="lockOverlay" style="display:none;z-index:100;align-items:center;background:#eef2f8ee"><div class="sheet" style="border-radius:22px;max-height:90vh">
  <div id="lockContent"></div>
 </div></div>
-<div class="modal" id="checkDateModal" style="display:none;z-index:40;align-items:center;background:#0006"><div class="sheet simple-date-sheet"><h2>방문 날짜</h2><p class="muted">방문 날짜를 선택하세요.</p><input id="checkDatePicker" type="date" style="font-size:18px;font-weight:800;margin-top:8px"><button class="primary" style="width:100%;margin-top:12px" onclick="applyCheckDate()">확인</button><button class="close" onclick="closeCheckDate()">취소</button></div></div>
+<input id="nativeDatePicker" type="date" aria-label="방문 날짜 선택">
 <div class="toast" id="toast"></div>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script>
@@ -504,29 +505,28 @@ function createNewTopic(){
 }
 function navigateTab(nextTab){document.getElementById('routeModal').style.display='none';document.body.classList.remove('route-open');tab=nextTab;render();}
 function render(){setNav();const app=document.querySelector('.app');app?.classList.toggle('check-mode',tab==='check');app?.classList.toggle('manage-mode',tab==='settings');app?.classList.toggle('home-mode',tab==='home');const titleEl=document.querySelector('#appHeader .title');if(titleEl)titleEl.textContent='📋 방문 체크북';if(tab==='home')renderHome();else if(tab==='check')renderCheck();else if(tab==='records')renderRecords();else if(tab==='settings')renderManage()}
-document.getElementById('checkDatePicker').addEventListener('change',applyCheckDate);
-document.getElementById('datePicker').value=state.date;document.getElementById('datePicker').onchange=e=>{state.date=e.target.value;if(activeRecordId){const r=state.records.find(x=>x.id===activeRecordId);if(r)r.date=state.date;}save();render()};
-
-function openCheckDate(){
- const dp=document.getElementById('checkDatePicker');
- if(!dp)return;
- dp.value=state.date||new Date().toISOString().slice(0,10);
- try{
-   if(typeof dp.showPicker==='function'){dp.showPicker();}
-   else{dp.focus();dp.click();}
- }catch(e){try{dp.focus();dp.click();}catch(_){}}
-}
-function closeCheckDate(){const m=document.getElementById('checkDateModal');if(m)m.style.display='none'}
-function applyCheckDate(){
- const v=document.getElementById('checkDatePicker')?.value;
+document.getElementById('datePicker').value=state.date;document.getElementById('datePicker').onchange=e=>{applyGlobalDate(e.target.value)};
+const nativeDatePicker=document.getElementById('nativeDatePicker');
+nativeDatePicker.value=state.date;
+nativeDatePicker.addEventListener('change',e=>applyGlobalDate(e.target.value));
+function applyGlobalDate(v){
  if(!v)return;
  state.date=v;
  if(activeRecordId){const r=state.records.find(x=>x.id===activeRecordId);if(r)r.date=v;}
  save();
  const dp=document.getElementById('datePicker');if(dp)dp.value=v;
- closeCheckDate();
+ const ndp=document.getElementById('nativeDatePicker');if(ndp)ndp.value=v;
  render();
  toast('방문 날짜를 변경했습니다.');
+}
+function openCheckDate(){
+ const dp=document.getElementById('nativeDatePicker');
+ if(!dp)return;
+ dp.value=state.date||new Date().toISOString().slice(0,10);
+ try{
+   if(typeof dp.showPicker==='function'){dp.showPicker();}
+   else{dp.focus();dp.click();}
+ }catch(e){try{dp.focus();dp.click();}catch(_){} }
 }
 function formatCheckDate(v){
  const d=new Date(v+'T00:00:00');
