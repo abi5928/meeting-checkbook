@@ -592,7 +592,7 @@ function renderCheck(){
  main.innerHTML=`<div class="check-screen">
    <div class="check-topbar">
      <button class="check-back" onclick="navigateTab('home')" aria-label="뒤로">‹</button>
-     <button class="check-heading" type="button" onclick="editTopicName()" aria-label="주제명 수정">방문 체크</button>
+     <button class="check-heading" type="button" onclick="editTopicName()" aria-label="주제명 수정">${esc((r&&r.title)||state.title||'방문 체크')}</button>
    </div>
    <section class="check-date-card">
      <div class="check-date-row"><div class="check-date-text">📅 ${esc(formatCheckDate(state.date))}</div><span class="check-date-direct">변경<input class="date-native-direct" type="date" value="${esc(state.date)}" aria-label="방문 날짜 변경" onchange="applyGlobalDate(this.value)"></span></div>
