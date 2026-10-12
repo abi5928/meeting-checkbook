@@ -1021,7 +1021,7 @@ function renderRecords(){
   const n=Object.values(r.checks||{}).filter(v=>parseCheck(v).checked).length;
   const total=Array.isArray(r.people)&&r.people.length ? r.people.length : state.people.length;
   const d=document.createElement('div');d.className='record-card';
-  d.innerHTML=`<div class="record-title">${esc(r.title)}</div><div class="record-meta">${esc(r.date)} · ${n}명 / ${total}명 체크</div><div class="record-actions"><button class="primary">열기</button><button>📤 엑셀 내보내기</button><button class="danger">🗑 삭제</button></div>`;
+  d.innerHTML=`<div class="record-title">${esc(r.title)}</div><div class="record-meta">${esc(r.date)} · ${n}명 / ${total}명 체크</div><div class="record-actions"><button class="primary">열기</button><button>📤 엑셀<br>내보내기</button><button class="danger">🗑 삭제</button></div>`;
   const b=d.querySelectorAll('button');
   b[0].onclick=()=>openRecord(r); b[1].onclick=()=>exportExcel(r); b[2].onclick=()=>{
    if(!confirm('이 기록을 휴지통으로 이동할까요?\n기록은 휴지통에서 복원할 수 있습니다.'))return;
