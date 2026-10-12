@@ -28,7 +28,11 @@ button{border:0;border-radius:12px;padding:11px 13px;font-weight:800;color:#1720
 .actions{display:flex;gap:5px;align-items:center;flex-wrap:nowrap;justify-content:flex-end}.actions button,.actions select{flex:none}.actions select{max-width:86px}.status{min-width:62px}.compact{white-space:nowrap;min-width:auto}.memo{background:#f5f7ff;color:#40506b}.memo.has{background:#fff3cd;color:#7a5600}.off{background:#f0f2f6;color:#7a8495}.on{background:#dff7e8;color:#198754}.call{background:#edf8f1;color:#167044;padding:9px}
 .warn{background:#fff7e6;color:#946200;padding:10px;border-radius:10px;font-size:13px;margin:8px 0}.ok{background:#edf8f1;color:#167044;padding:10px;border-radius:10px;font-size:13px;margin:8px 0}
 nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:min(560px,100%);background:rgba(255,255,255,.97);border-top:1px solid #e6eaf1;display:flex;padding:8px 5px calc(8px + env(safe-area-inset-bottom));z-index:6;box-shadow:0 -4px 18px rgba(23,32,51,.05)}
-nav button{flex:1;background:none;font-size:12px;padding:7px 2px;color:#6d7788;line-height:1.25}nav button.active{color:#2563eb;font-weight:900}
+nav button{flex:1;background:none;font-size:12px;padding:7px 2px;color:#64748b;line-height:1.25;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px}nav button.active{color:#1674f5;font-weight:900}
+.nav-icon{width:27px;height:27px;display:block;flex:none}.nav-icon svg{display:block;width:100%;height:100%;fill:none;stroke:currentColor;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}.nav-icon .solid{fill:currentColor;stroke:currentColor}.nav-icon .cutout{fill:#fff;stroke:#fff}
+.home-icon{width:54px;height:54px;display:flex;align-items:center;justify-content:center;margin-bottom:9px;color:#1674f5}.home-icon svg{width:100%;height:100%;display:block;fill:none;stroke:currentColor;stroke-width:2.7;stroke-linecap:round;stroke-linejoin:round}.home-icon .solid{fill:currentColor;stroke:currentColor}.home-icon .cutout{fill:#fff;stroke:#fff}
+.home-card.green .home-icon,.home-card.yellow .home-icon{color:#1674f5}.home-card.purple .home-icon{color:#f59e0b}.home-card.pink .home-icon{color:#4f46e5}.home-card.gray .home-icon{color:#64748b}.home-icon.car-icon{width:62px;height:54px}
+.manage-item-icon svg{stroke-width:2.7!important;stroke-linecap:round!important;stroke-linejoin:round!important}
 .modal{position:fixed;inset:0;background:#0008;display:none;align-items:flex-end;z-index:20}.modal.show{display:flex}.sheet{background:#fff;width:min(560px,100%);margin:auto;border-radius:22px 22px 0 0;padding:20px;max-height:92vh;overflow-y:auto;-webkit-overflow-scrolling:touch}.result{padding:13px;border:1px solid #e2e7f0;border-radius:12px;margin:8px 0}.close{width:100%;margin-top:10px}.record{padding:12px 0;border-bottom:1px solid #edf0f5}.toast{position:fixed;left:50%;bottom:82px;transform:translateX(-50%);background:#182235;color:#fff;padding:10px 16px;border-radius:99px;display:none;z-index:30;white-space:nowrap}
 .small{font-size:12px;padding:8px 10px}.actions button,.actions select{min-height:42px}.help-summary{cursor:pointer;font-weight:800;list-style:none;padding:2px 0}.help-summary::-webkit-details-marker{display:none}.help-summary::before{content:"▶";display:inline-block;margin-right:7px;font-size:11px}.help-details[open] .help-summary::before{content:"▼"}.help-body{margin-top:10px;font-size:13px;line-height:1.7}.danger{background:#fff0f0;color:#b42318}
 .route-person{display:flex;align-items:center;gap:9px;padding:10px 4px;border-bottom:1px solid #edf0f5}.route-person input{width:22px;height:22px;flex:none}.route-order{display:inline-flex;width:26px;height:26px;border-radius:50%;align-items:center;justify-content:center;background:#eef2f8;font-weight:800;font-size:12px}.route-result{display:flex;gap:10px;align-items:flex-start;padding:12px 4px;border-bottom:1px solid #edf0f5}.route-number{width:30px;height:30px;border-radius:50%;background:#182235;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;flex:none}.route-updown{display:flex;gap:5px;margin-left:auto}.route-updown button{padding:6px 8px}.route-address{display:block;color:#718096;font-size:12px;margin-top:3px}.route-mode{display:grid;grid-template-columns:1fr;gap:7px;margin:10px 0}.route-mode label{display:flex;align-items:center;gap:9px;padding:11px 12px;border:1px solid #dbe2ef;border-radius:12px;background:#f8fafc;font-weight:700}.route-mode input{width:20px;height:20px;margin:0}.route-mode .hint{font-size:11px;font-weight:500;color:#718096;margin-left:auto}.route-result-panel{display:none;margin-top:12px;padding:13px;border:2px solid #dbe3f1;border-radius:16px;background:#f8faff}.route-result-panel.show{display:block}.route-result-title{font-size:16px;font-weight:800;margin-bottom:5px}.route-result-sub{font-size:12px;color:#718096;margin-bottom:8px}.route-switch{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}.route-done{color:#198754;font-weight:800}.route-next{background:#eaf2ff;color:#155eef;font-weight:800}
@@ -94,7 +98,7 @@ nav button{flex:1;background:none;font-size:12px;padding:7px 2px;color:#6d7788;l
 .check-count-row{display:flex;align-items:end;justify-content:space-between;margin-top:9px}
 .check-count-row strong{font-size:20px;font-weight:900}.check-count-row span{font-size:12px;color:#7a8495}
 .check-progress{height:7px;background:#e7ecf4;border-radius:99px;overflow:hidden;margin-top:8px}.check-progress i{display:block;height:100%;background:#2563eb;border-radius:99px}
-.check-route-card{position:relative;width:100%;display:flex;align-items:center;justify-content:center;background:#eaf2ff!important;color:#172033!important;border:0!important;border-radius:18px!important;min-height:56px;padding:8px 52px!important;margin-bottom:12px!important;font-size:21px!important;box-shadow:none!important}.check-route-card span:first-child{display:block;text-align:center;font-weight:900;letter-spacing:-.3px}.check-route-card span:last-child{position:absolute;right:18px;font-size:32px;color:#2563eb;font-weight:300}
+.check-route-card{position:relative;width:100%;display:flex;align-items:center;justify-content:center;background:#eaf2ff!important;color:#172033!important;border:0!important;border-radius:18px!important;min-height:56px;padding:8px 52px!important;margin-bottom:12px!important;font-size:21px!important;box-shadow:none!important}.check-route-card span:first-child{display:block;text-align:center;font-weight:900;letter-spacing:-.3px}.route-car-label{display:flex!important;align-items:center;justify-content:center;gap:8px}.route-car-label svg{width:30px;height:30px;fill:#1674f5;stroke:#1674f5;stroke-width:2;stroke-linejoin:round}.route-car-label svg .cutout{fill:#eaf2ff;stroke:#eaf2ff}.check-route-card span:last-child{position:absolute;right:18px;font-size:32px;color:#2563eb;font-weight:300}
 .check-search-card{background:#fff;border-radius:16px;padding:9px 10px;margin-bottom:9px;box-shadow:0 3px 14px rgba(23,32,51,.045)}
 .check-search-card .searchrow{gap:6px}.check-search-card .searchrow input{border:0;background:#f7f8fa;border-radius:12px;padding:12px 12px;font-size:15px;box-shadow:none}.check-search-card .mic{width:46px;border-radius:12px;background:#edf3ff;color:#2563eb;font-size:18px}
 .check-search-card .muted{display:none}
@@ -158,10 +162,10 @@ body.route-open nav button.active{color:#2563eb}
 </header>
 <main id="main"></main>
 <nav>
- <button id="navHome" onclick="navigateTab('home')">⌂<br>홈</button>
- <button id="navCheck" onclick="navigateTab('check')">📋<br>체크</button>
- <button id="navRecords" onclick="navigateTab('records')">🗂<br>목록</button>
- <button id="navManage" onclick="navigateTab('settings')">⚙<br>설정</button>
+ <button id="navHome" onclick="navigateTab('home')"><span class="nav-icon"><svg viewBox="0 0 48 48" aria-hidden="true"><path class="solid" d="M5 21.5 24 6l19 15.5v19a2 2 0 0 1-2 2H27V28H21v14H7a2 2 0 0 1-2-2z"/></svg></span><span>홈</span></button>
+ <button id="navCheck" onclick="navigateTab('check')"><span class="nav-icon"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="m8 25 10 10L40 11" stroke-width="5"/></svg></span><span>체크</span></button>
+ <button id="navRecords" onclick="navigateTab('records')"><span class="nav-icon"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M13 7h26M13 16h26M13 25h26M13 34h26"/><circle class="solid" cx="6" cy="7" r="2"/><circle class="solid" cx="6" cy="16" r="2"/><circle class="solid" cx="6" cy="25" r="2"/><circle class="solid" cx="6" cy="34" r="2"/></svg></span><span>목록</span></button>
+ <button id="navManage" onclick="navigateTab('settings')"><span class="nav-icon"><svg viewBox="0 0 48 48" aria-hidden="true"><path class="solid" d="m20 4 8 0 1.5 5.1 4 2.3 5-1.6 4 7-3.8 3.6v4.8l3.8 3.6-4 7-5-1.6-4 2.3L28 43h-8l-1.5-5.5-4-2.3-5 1.6-4-7 3.8-3.6v-4.8L5.5 17.8l4-7 5 1.6 4-2.3z"/><circle class="cutout" cx="24" cy="24" r="6"/></svg></span><span>설정</span></button>
 </nav>
 </div>
 <div class="modal" id="manageDetailModal"><div class="sheet manage-sheet"><h2 id="manageDetailTitle">설정</h2><div id="manageDetailBody"></div><button class="close" onclick="closeManageDetail()">닫기</button></div></div>
@@ -548,12 +552,12 @@ function renderHome(){
    <div class="home-date-card"><div class="home-date">📅 ${esc(dateLabel)}</div><span class="date-native-wrap">변경<input class="date-native-direct" type="date" value="${esc(state.date)}" aria-label="방문 날짜 변경" onchange="applyGlobalDate(this.value)"></span></div>
    <div class="home-summary"><span>오늘 방문 예정</span><strong>${total}명 ›</strong></div>
    <div class="home-grid">
-    <button class="home-card blue" onclick="navigateTab('check')"><div class="home-icon">✓</div><strong>방문 체크</strong><span>오늘 방문 기록</span></button>
-    <button class="home-card green" onclick="openRoute()"><div class="home-icon">🚗</div><strong>동선 만들기</strong><span>방문 순서 · 길찾기</span></button>
-    <button class="home-card yellow" onclick="navigateTab('check')"><div class="home-icon">☰</div><strong>대상자 목록</strong><span>명단 관리</span></button>
-    <button class="home-card purple" onclick="newTopic()"><div class="home-icon">＋</div><strong>새 방문기록</strong><span>새 체크북 시작</span></button>
-    <button class="home-card pink" onclick="navigateTab('records')"><div class="home-icon">▮▮▮</div><strong>방문 내역</strong><span>기록 조회</span></button>
-    <button class="home-card gray" onclick="navigateTab('settings')"><div class="home-icon">⚙</div><strong>설정</strong><span>앱 설정 · 공유</span></button>
+    <button class="home-card blue" onclick="navigateTab('check')"><div class="home-icon">${appIcon('check')}</div><strong>방문 체크</strong><span>오늘 방문 기록</span></button>
+     <button class="home-card green" onclick="openRoute()"><div class="home-icon car-icon">${appIcon('car')}</div><strong>동선 만들기</strong><span>방문 순서 · 길찾기</span></button>
+     <button class="home-card yellow" onclick="navigateTab('check')"><div class="home-icon">${appIcon('people')}</div><strong>대상자 목록</strong><span>명단 관리</span></button>
+     <button class="home-card purple" onclick="newTopic()"><div class="home-icon">${appIcon('addFile')}</div><strong>새 방문기록</strong><span>새 체크북 시작</span></button>
+     <button class="home-card pink" onclick="navigateTab('records')"><div class="home-icon">${appIcon('chart')}</div><strong>방문 내역</strong><span>기록 조회</span></button>
+     <button class="home-card gray" onclick="navigateTab('settings')"><div class="home-icon">${appIcon('settings')}</div><strong>설정</strong><span>앱 설정 · 공유</span></button>
    </div>
  </div>`;
 }
@@ -574,7 +578,7 @@ function renderCheck(){
      <div class="check-count-row"><strong>${s.size} / ${state.people.length}명</strong><span>${pct}%</span></div>
      <div class="check-progress"><i style="width:${pct}%"></i></div>
    </section>
-   <button class="check-route-card" onclick="openRoute()"><span>🚗&nbsp; 동선 만들기</span><span>›</span></button>
+   <button class="check-route-card" onclick="openRoute()"><span class="route-car-label">${appIcon('car')} 동선 만들기</span><span>›</span></button>
    ${renderSavedRouteCard()}
    <div class="check-search-card">${activeRecordId?'<div class="ok" style="margin-bottom:8px">✏️ 기존 기록을 수정 중입니다.</div>':''}${state.topicType==='기타'?`<input id="titleInput" type="text" value="${esc(state.title)}" placeholder="기타 주제명" style="margin-bottom:8px">`:''}
      <div class="searchrow"><input id="search" type="search" value="" placeholder="🔍 대상자 이름 검색" autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false" name="person_search"><button class="mic" id="mic">🎙️</button></div>
@@ -1097,6 +1101,19 @@ async function shareApp(){
  try{document.execCommand('copy');toast('✓ 앱 주소가 복사되었습니다.');}
  catch(e){prompt('앱 주소를 복사하세요.',appUrl);}
  ta.remove();
+}
+function appIcon(type){
+ const a='viewBox="0 0 48 48" aria-hidden="true" focusable="false"';
+ const icons={
+ home:`<svg ${a}><path class="solid" d="M5 21.5 24 6l19 15.5v19a2 2 0 0 1-2 2H27V28H21v14H7a2 2 0 0 1-2-2z"/></svg>`,
+ list:`<svg ${a}><path d="M13 7h26M13 16h26M13 25h26M13 34h26"/><circle class="solid" cx="6" cy="7" r="2"/><circle class="solid" cx="6" cy="16" r="2"/><circle class="solid" cx="6" cy="25" r="2"/><circle class="solid" cx="6" cy="34" r="2"/></svg>`,
+ people:`<svg ${a}><circle class="solid" cx="17" cy="16" r="7"/><circle class="solid" cx="33" cy="17" r="6"/><path class="solid" d="M4 38c0-7 5-12 13-12s13 5 13 12v3H4z"/><path class="solid" d="M29 28c7-2 14 3 15 10v3H33v-3c0-4-1-7-4-10z"/></svg>`,
+ car:`<svg ${a}><path class="solid" d="M8 22.5 12 12c.7-2 2.4-3 4.5-3h15c2.1 0 3.8 1 4.5 3l4 10.5 3 2.5c1.2 1 2 2.5 2 4v8a2 2 0 0 1-2 2h-3v-4H8v4H5a2 2 0 0 1-2-2v-8c0-1.5.8-3 2-4z"/><path d="M12 22h24"/><circle class="cutout" cx="12" cy="31" r="3"/><circle class="cutout" cx="36" cy="31" r="3"/></svg>`,
+ check:`<svg ${a}><path d="m8 25 10 10L40 11" stroke-width="5"/></svg>`,
+ addFile:`<svg ${a}><path d="M11 5h18l9 9v29H11z"/><path d="M29 5v10h9"/><path d="M24 22v14M17 29h14" stroke-width="3"/></svg>`,
+ chart:`<svg ${a}><rect class="solid" x="7" y="25" width="8" height="17" rx="2"/><rect class="solid" x="20" y="16" width="8" height="26" rx="2"/><rect class="solid" x="33" y="6" width="8" height="36" rx="2"/></svg>`,
+ settings:`<svg ${a}><path class="solid" d="m20 4 8 0 1.5 5.1 4 2.3 5-1.6 4 7-3.8 3.6v4.8l3.8 3.6-4 7-5-1.6-4 2.3L28 43h-8l-1.5-5.5-4-2.3-5 1.6-4-7 3.8-3.6v-4.8L5.5 17.8l4-7 5 1.6 4-2.3z"/><circle class="cutout" cx="24" cy="24" r="6"/></svg>`
+ }; return icons[type]||'';
 }
 function manageIcon(type){
  const c='viewBox="0 0 48 48" aria-hidden="true"';
