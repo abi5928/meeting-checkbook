@@ -755,27 +755,63 @@ function closeVoice(){document.getElementById('voiceModal').style.display='none'
 
 function importExcel(inputId='checkExcelFile'){
  const input=document.getElementById(inputId);
- const f=input?.files?.[0];if(!f){alert('Excel 파일을 선택하세요.');return}
+ const f=input?.files?.[0];
+ if(!f){alert('Excel 파일을 선택하세요.');return}
+ const fileName=f.name||'선택한 파일';
  const reader=new FileReader();
  reader.onload=e=>{
   try{
    const wb=XLSX.read(e.target.result,{type:'array',cellDates:true});
-   const ws=wb.Sheets[wb.SheetNames[0]];
-   const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:'',raw:true});
-   let h=rows.findIndex(row=>row.some(v=>['이름','성명','대상자명','대상자'].includes(String(v).trim())));if(h<0)h=5;
-   const heads=rows[h].map(v=>String(v).trim());
-   let ni=heads.findIndex(v=>['이름','성명','대상자명','대상자'].includes(v));if(ni<0)ni=1;
-   let bi=heads.findIndex(v=>v.includes('생년'));if(bi<0)bi=2;
-   let pi=heads.findIndex(v=>v.includes('전화')||v.includes('휴대'));if(pi<0)pi=3;
-   let ai=heads.findIndex(v=>v.includes('주소')||v.includes('거주지')||v.includes('도로명'));if(ai<0)ai=4;
-   const people=[];rows.slice(h+1).forEach(row=>{const name=String(row[ni]??'').trim();if(!name)return;people.push({id:crypto.randomUUID(),name,birth:birthNorm(row[bi]),phone:String(row[pi]??'').trim(),address:String(row[ai]??'').trim()})});
-   if(!people.length){alert('이름 열을 찾지 못했거나 명단이 없습니다.');return}
+   if(!wb.SheetNames || !wb.SheetNames.length){alert('엑셀 파일에 시트가 없습니다.');return}
+   // 이름 열이 있는 시트를 우선 선택한다. 첫 번째 시트가 안내문 등인 파일도 처리한다.
+   let chosen=null, rows=null, h=-1;
+   for(const sn of wb.SheetNames){
+    const candidate=XLSX.utils.sheet_to_json(wb.Sheets[sn],{header:1,defval:'',raw:true});
+    const idx=candidate.findIndex(row=>row.some(v=>['이름','성명','대상자명','대상자'].includes(String(v).trim())));
+    if(idx>=0){chosen=sn;rows=candidate;h=idx;break}
+   }
+   if(!rows){chosen=wb.SheetNames[0];rows=XLSX.utils.sheet_to_json(wb.Sheets[chosen],{header:1,defval:'',raw:true});h=0}
+   if(!rows.length){alert('선택한 엑셀 시트에 데이터가 없습니다.');return}
+   const heads=(rows[h]||[]).map(v=>String(v??'').trim());
+   let ni=heads.findIndex(v=>['이름','성명','대상자명','대상자'].includes(v));
+   if(ni<0){alert('이름 열을 찾지 못했습니다. 선택한 시트: '+chosen+' / 첫 행: '+heads.join(', '));return}
+   const bi=heads.findIndex(v=>v.includes('생년'));
+   const pi=heads.findIndex(v=>v.includes('전화')||v.includes('휴대'));
+   const ai=heads.findIndex(v=>v.includes('주소')||v.includes('거주지')||v.includes('도로명'));
+   const people=[];
+   rows.slice(h+1).forEach(row=>{
+    const name=String(row[ni]??'').trim();
+    if(!name)return;
+    people.push({
+     id:crypto.randomUUID(), name,
+     birth:birthNorm(bi>=0?row[bi]:''),
+     phone:String(pi>=0?(row[pi]??''):'').trim(),
+     address:String(ai>=0?(row[ai]??''):'').trim()
+    });
+   });
+   if(!people.length){alert('엑셀 파일에서 대상자를 찾지 못했습니다.\n파일: '+fileName+'\n시트: '+chosen+'\n이름 열: '+heads[ni]);return}
+   // 중요: 현재 편집 중인 기록이 activeRecordId에 없더라도 날짜/주제로 찾은 기록을 갱신한다.
+   let r=activeRecordId?state.records.find(x=>x.id===activeRecordId):null;
+   if(!r) r=state.records.find(x=>x.date===state.date && x.title===state.title);
    state.people=people;
-   const r=activeRecordId?state.records.find(x=>x.id===activeRecordId):null;
-   if(r) r.people=people.map(p=>({...p}));
-   save();query='';deleteMode=false;deleteSelected=new Set();tab='check';render();toast(people.length+'명 명단을 불러왔습니다.');if(input)input.value=''
-  }catch(err){alert('Excel 읽기 오류: '+err.message)}
- };reader.readAsArrayBuffer(f)
+   if(r){
+    r.people=people.map(p=>({...p}));
+    activeRecordId=r.id;
+    state.title=r.title||state.title;
+    state.topicType=r.topicType||state.topicType;
+    state.date=r.date||state.date;
+   }else{
+    // 기록이 없는 경우 현재 명단만 교체하고, 다음 저장 때 기록에 반영한다.
+    activeRecordId=null;
+   }
+   save();query='';deleteMode=false;deleteSelected=new Set();tab='check';render();
+   const preview=people.slice(0,3).map(p=>p.name).join(', ');
+   toast(`${fileName}: ${people.length}명 불러옴${preview?' · '+preview:''}`);
+   if(input)input.value='';
+  }catch(err){alert('Excel 읽기 오류: '+(err?.message||err))}
+ };
+ reader.onerror=()=>alert('파일을 읽지 못했습니다. 파일을 다시 선택해 주세요.');
+ reader.readAsArrayBuffer(f);
 }
 
 let routeSelection=[];
