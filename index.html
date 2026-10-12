@@ -1,0 +1,1158 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#4f7cff">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>방문 체크북</title>
+<style>
+html,body{width:100%;max-width:100%;overflow-x:hidden;-webkit-text-size-adjust:100%}
+.call{display:inline-flex;text-decoration:none;align-items:center;justify-content:center;min-width:42px;}
+*{box-sizing:border-box}body{margin:0;background:#f4f6f8;color:#172033;font-family:Pretendard,-apple-system,BlinkMacSystemFont,"Noto Sans KR","Segoe UI",sans-serif;letter-spacing:-.2px}
+.app{width:min(100%,900px);margin:auto;min-height:100vh;background:#f7f8fa;box-shadow:0 0 30px #00000010}
+header{padding:18px 18px 15px;background:#fff;color:#172033;position:sticky;top:0;z-index:5;border-bottom:1px solid #eef0f4}
+.title{font-size:23px;font-weight:900;letter-spacing:-.8px}.datebar{display:flex;align-items:center;gap:8px;margin-top:10px}
+.datebar input{flex:1;min-width:0;border:1px solid #e6e9ef;border-radius:12px;padding:10px;background:#f8f9fb;color:#182235;font-weight:700}
+main{padding:14px 15px 92px}.card{background:#fff;border:0;border-radius:18px;padding:16px;margin-bottom:12px;box-shadow:0 2px 12px rgba(23,32,51,.05)}
+.summary{background:#f5f7ff;border-radius:18px;padding:15px;margin-bottom:12px}.summaryrow{display:flex;justify-content:space-between;align-items:end}
+.count{font-size:26px;font-weight:800}.muted{color:#718096;font-size:13px}.progress{height:8px;background:#e5eaf5;border-radius:99px;margin-top:11px;overflow:hidden}.bar{height:100%;background:#4f7cff;border-radius:99px;width:0}
+input[type=text],input[type=password],input[type=file],select{width:100%;padding:13px;border:1px solid #dbe2ef;border-radius:13px;font-size:16px;background:#fff}
+input[type=password]{-webkit-text-size-adjust:100%;font-size:16px}
+button{border:0;border-radius:12px;padding:11px 13px;font-weight:800;color:#172033;background:#eef1f5}
+.primary{background:#2563eb;color:#fff}.voice{width:100%;background:#182235;color:#fff;padding:14px;font-size:16px;margin:10px 0}
+.searchrow{display:flex;gap:7px}.searchrow input{flex:1}.mic{font-size:20px;padding:9px 13px;background:#eef5ff;color:#155eef}
+.list{margin-top:10px}.person{display:grid;grid-template-columns:32px 1fr auto;gap:8px;align-items:center;padding:12px 4px;border-bottom:1px solid #edf0f5}.person.delete-mode{grid-template-columns:32px 32px 1fr}.person.delete-mode .name{min-width:0}.person.delete-mode .actions{display:none}
+.num{color:#182235;font-size:14px;font-weight:800;text-align:right;min-width:30px;padding-right:2px}.name{font-weight:700}.birth{display:block;color:#8a95a8;font-size:12px;margin-top:3px}
+.actions{display:flex;gap:5px;align-items:center;flex-wrap:nowrap;justify-content:flex-end}.actions button,.actions select{flex:none}.actions select{max-width:86px}.status{min-width:62px}.compact{white-space:nowrap;min-width:auto}.memo{background:#f5f7ff;color:#40506b}.memo.has{background:#fff3cd;color:#7a5600}.off{background:#f0f2f6;color:#7a8495}.on{background:#dff7e8;color:#198754}.call{background:#edf8f1;color:#167044;padding:9px}
+.warn{background:#fff7e6;color:#946200;padding:10px;border-radius:10px;font-size:13px;margin:8px 0}.ok{background:#edf8f1;color:#167044;padding:10px;border-radius:10px;font-size:13px;margin:8px 0}
+nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:min(560px,100%);background:rgba(255,255,255,.97);border-top:1px solid #e6eaf1;display:flex;padding:8px 5px calc(8px + env(safe-area-inset-bottom));z-index:6;box-shadow:0 -4px 18px rgba(23,32,51,.05)}
+nav button{flex:1;background:none;font-size:12px;padding:7px 2px;color:#6d7788;line-height:1.25}nav button.active{color:#2563eb;font-weight:900}
+.modal{position:fixed;inset:0;background:#0008;display:none;align-items:flex-end;z-index:20}.modal.show{display:flex}.sheet{background:#fff;width:min(560px,100%);margin:auto;border-radius:22px 22px 0 0;padding:20px;max-height:92vh;overflow-y:auto;-webkit-overflow-scrolling:touch}.result{padding:13px;border:1px solid #e2e7f0;border-radius:12px;margin:8px 0}.close{width:100%;margin-top:10px}.record{padding:12px 0;border-bottom:1px solid #edf0f5}.toast{position:fixed;left:50%;bottom:82px;transform:translateX(-50%);background:#182235;color:#fff;padding:10px 16px;border-radius:99px;display:none;z-index:30;white-space:nowrap}
+.small{font-size:12px;padding:8px 10px}.actions button,.actions select{min-height:42px}.help-summary{cursor:pointer;font-weight:800;list-style:none;padding:2px 0}.help-summary::-webkit-details-marker{display:none}.help-summary::before{content:"▶";display:inline-block;margin-right:7px;font-size:11px}.help-details[open] .help-summary::before{content:"▼"}.help-body{margin-top:10px;font-size:13px;line-height:1.7}.danger{background:#fff0f0;color:#b42318}
+.route-person{display:flex;align-items:center;gap:9px;padding:10px 4px;border-bottom:1px solid #edf0f5}.route-person input{width:22px;height:22px;flex:none}.route-order{display:inline-flex;width:26px;height:26px;border-radius:50%;align-items:center;justify-content:center;background:#eef2f8;font-weight:800;font-size:12px}.route-result{display:flex;gap:10px;align-items:flex-start;padding:12px 4px;border-bottom:1px solid #edf0f5}.route-number{width:30px;height:30px;border-radius:50%;background:#182235;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;flex:none}.route-updown{display:flex;gap:5px;margin-left:auto}.route-updown button{padding:6px 8px}.route-address{display:block;color:#718096;font-size:12px;margin-top:3px}.route-mode{display:grid;grid-template-columns:1fr;gap:7px;margin:10px 0}.route-mode label{display:flex;align-items:center;gap:9px;padding:11px 12px;border:1px solid #dbe2ef;border-radius:12px;background:#f8fafc;font-weight:700}.route-mode input{width:20px;height:20px;margin:0}.route-mode .hint{font-size:11px;font-weight:500;color:#718096;margin-left:auto}.route-result-panel{display:none;margin-top:12px;padding:13px;border:2px solid #dbe3f1;border-radius:16px;background:#f8faff}.route-result-panel.show{display:block}.route-result-title{font-size:16px;font-weight:800;margin-bottom:5px}.route-result-sub{font-size:12px;color:#718096;margin-bottom:8px}.route-switch{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}.route-done{color:#198754;font-weight:800}.route-next{background:#eaf2ff;color:#155eef;font-weight:800}
+
+/* 반응형 업무 화면 */
+@media (min-width:600px){
+  header{padding:20px 28px 16px}
+  .title{font-size:23px}
+  main{padding:20px 24px 104px}
+  .card{padding:18px;margin-bottom:16px}
+  .person{grid-template-columns:42px 1fr auto;gap:12px;padding:14px 6px}
+  .name{font-size:17px}
+  .birth{font-size:13px}
+  .actions{gap:7px}
+  nav{width:min(900px,100%);padding:9px 10px calc(9px + env(safe-area-inset-bottom))}
+  nav button{font-size:13px;padding:9px 4px}
+  .sheet{width:min(760px,100%);padding:24px}
+}
+@media (min-width:900px){
+  body{background:#eaf0f7}
+  .app{min-height:100vh}
+  header{border-radius:0}
+  main{padding-left:30px;padding-right:30px}
+}
+@media (min-width:1100px){
+  .app{width:min(980px,100%)}
+  nav{width:min(980px,100%)}
+}
+
+/* v3 design */
+.splash{position:fixed;inset:0;background:linear-gradient(180deg,#f8fbff,#eef4ff);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:1000;transition:opacity .35s ease,visibility .35s ease}.splash.hide{opacity:0;visibility:hidden;pointer-events:none}.splash-art{position:relative;width:132px;height:112px;margin-bottom:20px}.splash-map{position:absolute;left:14px;bottom:8px;width:104px;height:62px;background:#fff;border-radius:16px;box-shadow:0 12px 26px #4f7cff20;transform:rotate(-3deg)}.splash-map:before{content:"";position:absolute;left:34px;top:16px;width:34px;height:34px;background:#e8f1ff;border-radius:50%}.splash-pin{position:absolute;left:57px;top:4px;width:28px;height:38px;border-radius:18px 18px 18px 2px;background:#4f7cff;color:#fff;font-size:12px;text-align:center;padding-top:8px;transform:rotate(45deg);box-shadow:0 8px 18px #4f7cff33}.splash-pin::first-letter{color:#fff}.splash-house{position:absolute;left:34px;bottom:22px;font-size:36px;line-height:1;color:#6bb48b}.splash-title{font-size:31px;font-weight:900;letter-spacing:-1.5px;color:#182235}.splash-title span{color:#4f7cff}.splash-sub{margin-top:9px;color:#718096;font-size:14px}.splash-line{width:116px;height:5px;background:#dce5f5;border-radius:99px;margin-top:28px;overflow:hidden}.splash-line i{display:block;width:42%;height:100%;background:#4f7cff;border-radius:99px;animation:splashload 1.1s ease-in-out infinite alternate}@keyframes splashload{from{width:28%}to{width:72%}}
+.app.check-mode #appHeader{padding:10px 15px 9px}.app.check-mode #appHeader .datebar{display:none}.app.check-mode #appHeader .title{font-size:18px}.header-check .datebar{margin-top:7px}.header-check .datebar input{padding:7px 9px;border-radius:9px;font-size:13px}.check-top{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;background:#f6f8ff;border-radius:14px;padding:11px 12px;margin-bottom:8px}.check-top .check-count{font-size:20px;font-weight:900}.check-top .check-date{font-size:12px;color:#718096}.check-route{border:1px solid #d8e6ff!important;background:#eaf2ff!important;color:#155eef!important;font-size:14px!important;padding:11px 14px!important;margin-bottom:10px!important}.check-tools{padding:10px 0!important;border:0!important;margin-bottom:8px!important}.check-tools .topic-label{font-size:12px;margin-bottom:6px}.person{padding:13px 4px}.name{font-size:16px}.birth{font-size:13px;line-height:1.35}.actions{gap:6px}.actions button,.actions select{font-size:14px}.call{font-size:16px;padding:9px}.status{min-width:68px}.memo{min-width:48px}.card{box-shadow:0 2px 12px #18223508}.menu-box,.card>b{font-size:16px}
+@media (min-width:600px){.splash-title{font-size:36px}.check-top{padding:13px 16px}.check-top .check-count{font-size:23px}.person{padding:15px 8px}.name{font-size:18px}.birth{font-size:13px}.actions button{font-size:14px}}
+/* v4 visual correction */
+.app.check-mode main{padding-top:9px}.app.check-mode .check-top{margin-bottom:7px}.app.check-mode .check-route{margin-bottom:7px!important}.app.check-mode .check-tools{background:#fff;border:1px solid #e7ebf3!important;border-radius:14px;padding:10px!important}
+
+/* v5: clean card UI based on approved visual concept */
+.v5-card{background:#fff;border-radius:20px;padding:15px 16px;margin-bottom:12px;box-shadow:0 3px 14px rgba(23,32,51,.055);display:flex;align-items:center;gap:14px;min-height:82px}
+.v5-icon{width:48px;height:48px;border-radius:15px;display:flex;align-items:center;justify-content:center;font-size:25px;flex:none}
+.v5-icon.blue{background:#eaf2ff;color:#2563eb}.v5-icon.green{background:#e8f8ef;color:#16a05d}.v5-icon.orange{background:#fff3df;color:#ee9a00}.v5-icon.gray{background:#eef1f5;color:#596579}.v5-icon.red{background:#fff0f0;color:#ef3030}
+.v5-main{min-width:0;flex:1}.v5-main strong{display:block;font-size:17px;font-weight:900;letter-spacing:-.5px}.v5-main span{display:block;margin-top:4px;font-size:13px;color:#7a8495;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.v5-arrow{font-size:24px;color:#9aa3b2;font-weight:400}
+.v5-manage-title{font-size:28px;font-weight:900;margin:4px 2px 16px;letter-spacing:-1px}.v5-section-note{font-size:13px;color:#7a8495;margin:-7px 2px 14px}
+.v5-check-head{background:#fff;border-radius:18px;padding:14px 15px;margin-bottom:10px;box-shadow:0 2px 12px rgba(23,32,51,.05)}
+.v5-check-date{font-size:13px;color:#6f7b8e}.v5-check-count{display:flex;align-items:end;justify-content:space-between;margin-top:5px}.v5-check-count strong{font-size:22px;font-weight:900}.v5-check-count span{font-size:12px;color:#7a8495}.v5-route{display:flex;align-items:center;justify-content:space-between;background:#eaf2ff!important;color:#2563eb!important;border:0!important;border-radius:15px!important;box-shadow:none!important;font-size:15px!important;min-height:52px;margin-bottom:10px!important}.v5-search{background:#fff;border-radius:16px;padding:10px;box-shadow:0 2px 12px rgba(23,32,51,.045);margin-bottom:10px}.v5-person{background:#fff;border-radius:17px;padding:12px 10px;margin-bottom:8px;border:0!important;box-shadow:0 2px 10px rgba(23,32,51,.045)}
+.v5-person .num{font-size:14px}.v5-person .name{font-size:16px;font-weight:900}.v5-person .birth{font-size:12px;color:#7b8595}.v5-person .call{border-radius:12px}.v5-person .status{border-radius:12px;font-size:13px;min-width:58px}.v5-person .memo{border-radius:12px}
+.splash{background:linear-gradient(180deg,#fbfcff 0%,#f0f5ff 100%)}.splash-title{font-family:Pretendard,-apple-system,BlinkMacSystemFont,"Noto Sans KR",sans-serif;font-weight:950}.splash-sub{font-size:15px}
+.app.manage-mode #appHeader .datebar{display:none}.app.manage-mode #appHeader{padding:17px 18px 14px}.app.manage-mode #appHeader .title{font-size:22px}
+@media(min-width:600px){.v5-manage-title{font-size:30px}.v5-card{min-height:88px;padding:17px 20px}.v5-main strong{font-size:18px}.v5-person{padding:14px}.v5-check-head{padding:16px 18px}}
+
+
+/* v7 check screen: mockup-driven UI */
+.app.check-mode #appHeader{display:none}
+.check-screen{min-height:calc(100vh - 72px);padding:8px 16px 100px;max-width:560px;margin:0 auto}
+.check-topbar{height:48px;display:flex;align-items:center;justify-content:center;position:relative;margin-bottom:10px}
+.check-back{position:absolute;left:0;width:44px;height:44px;background:transparent;padding:0;border-radius:50%;font-size:31px;font-weight:300;color:#172033;line-height:1}
+.check-heading{font-size:20px;font-weight:900;letter-spacing:-.8px}
+.check-top-actions{position:absolute;right:0;display:flex;gap:2px}
+.check-top-actions button{background:transparent;padding:8px;font-size:22px;color:#172033}
+.check-date-card{background:#fff;border-radius:18px;padding:13px 14px;margin-bottom:10px;box-shadow:0 3px 14px rgba(23,32,51,.055)}
+.check-date-row{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.check-date-text{font-size:15px;font-weight:850;color:#172033}
+.check-date-change{padding:7px 10px;border-radius:11px;background:#eaf2ff;color:#2563eb;font-size:12px;font-weight:900}
+.check-count-row{display:flex;align-items:end;justify-content:space-between;margin-top:9px}
+.check-count-row strong{font-size:20px;font-weight:900}.check-count-row span{font-size:12px;color:#7a8495}
+.check-progress{height:7px;background:#e7ecf4;border-radius:99px;overflow:hidden;margin-top:8px}.check-progress i{display:block;height:100%;background:#2563eb;border-radius:99px}
+.check-route-card{position:relative;width:100%;display:flex;align-items:center;justify-content:center;background:#eaf2ff!important;color:#172033!important;border:0!important;border-radius:18px!important;min-height:56px;padding:8px 52px!important;margin-bottom:12px!important;font-size:21px!important;box-shadow:none!important}.check-route-card span:first-child{display:block;text-align:center;font-weight:900;letter-spacing:-.3px}.check-route-card span:last-child{position:absolute;right:18px;font-size:32px;color:#2563eb;font-weight:300}
+.check-search-card{background:#fff;border-radius:16px;padding:9px 10px;margin-bottom:9px;box-shadow:0 3px 14px rgba(23,32,51,.045)}
+.check-search-card .searchrow{gap:6px}.check-search-card .searchrow input{border:0;background:#f7f8fa;border-radius:12px;padding:12px 12px;font-size:15px;box-shadow:none}.check-search-card .mic{width:46px;border-radius:12px;background:#edf3ff;color:#2563eb;font-size:18px}
+.check-search-card .muted{display:none}
+.check-people .v5-person{display:grid;grid-template-columns:25px 1fr auto;gap:7px;align-items:center;background:#fff;border:0!important;border-radius:17px;padding:11px 9px;margin-bottom:8px;box-shadow:0 2px 10px rgba(23,32,51,.045)}
+.check-people .v5-person .num{font-size:14px;min-width:22px;padding:0;text-align:center}.check-people .v5-person .name{font-size:15px;font-weight:900;min-width:0}.check-people .v5-person .birth{font-size:11px;color:#7b8595;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:3px}
+.check-people .v5-person .actions{gap:5px}.check-people .v5-person .call{width:38px;min-width:38px;height:38px;padding:0;border-radius:11px;font-size:15px}.check-people .v5-person .status{height:38px;min-width:56px;border-radius:11px;font-size:13px;padding:7px 8px}.check-people .v5-person .memo{height:38px;min-width:45px;border-radius:11px;font-size:12px;padding:7px 8px}
+.check-manage-actions{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px}.check-manage-actions button{min-height:52px;border-radius:18px!important;font-size:19px!important;font-weight:900!important}.check-excel-wrap{margin-top:12px}.check-excel-wrap input[type=file]{width:100%;font-size:18px;padding:12px;border:2px solid #dfe7f5;border-radius:18px;background:#fff;box-sizing:border-box}.check-excel-btn{width:100%;min-height:52px;margin-top:10px!important;border-radius:18px!important;font-size:19px!important;font-weight:900!important}
+.check-people .v5-person .status.on{background:#2563eb;color:#fff}.check-people .v5-person .status.off{background:#eef1f5;color:#6d7788}
+.check-route-saved{background:#f8fbff;border:1px solid #e2eaf7;border-radius:15px;padding:10px 12px;margin-bottom:9px}
+@media(min-width:600px){.check-screen{padding-left:22px;padding-right:22px}.check-topbar{height:52px}.check-heading{font-size:21px}.check-date-card{padding:15px 17px}.check-people .v5-person{padding:13px 11px}.check-people .v5-person .name{font-size:16px}}
+
+/* v6 manage mockup */
+.manage-mode #appHeader{display:none}.manage-mode .app{background:#f7f8fa;box-shadow:none}.manage-mode main{max-width:560px;margin:0 auto;padding:0 16px calc(92px + env(safe-area-inset-bottom))}.manage-screen{min-height:calc(100vh - 78px);padding-top:10px}.manage-topbar{height:54px;display:flex;align-items:center;justify-content:center;position:relative;margin:0 -2px 8px}.manage-back{position:absolute;left:0;top:50%;transform:translateY(-50%);width:44px;height:44px;border-radius:50%;background:transparent;font-size:30px;font-weight:400;color:#172033;padding:0;line-height:1}.manage-heading{font-size:21px;font-weight:900;letter-spacing:-.8px;color:#172033}.manage-list{display:flex;flex-direction:column;gap:12px}.manage-item{width:100%;min-height:80px;border:0;border-radius:20px;background:#fff;box-shadow:0 3px 14px rgba(23,32,51,.055);display:grid;grid-template-columns:58px 1fr 26px;align-items:center;text-align:left;padding:13px 14px 13px 15px;cursor:pointer}.manage-item:active{transform:scale(.985)}.manage-item-icon{width:48px;height:48px;display:flex;align-items:center;justify-content:center}.manage-item-icon svg{width:38px;height:38px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}.manage-item-icon.orange{color:#f6a21a}.manage-item-icon.blue{color:#246bff}.manage-item-icon.gray{color:#718096}.manage-item-icon.red{color:#ef3340}.manage-item-copy{min-width:0}.manage-item-copy strong{display:block;font-size:18px;line-height:1.25;font-weight:900;color:#172033;letter-spacing:-.5px}.manage-item-copy span{display:block;margin-top:5px;font-size:14px;line-height:1.25;color:#718096}.manage-arrow{font-size:28px;line-height:1;color:#98a2b1;text-align:right;font-weight:300}.manage-sheet{max-width:560px}@media(min-width:600px){.manage-mode main{padding-left:22px;padding-right:22px}.manage-item{min-height:84px}.manage-item-copy strong{font-size:19px}.manage-item-copy span{font-size:15px}}
+
+/* 방문 체크북 UI 1.0 - 관리 화면을 기준으로 전체 화면 통일 */
+.security-screen{text-align:center;padding:18px 4px 8px}.security-icon{font-size:42px;line-height:1;margin:4px 0 14px}.security-screen h1{font-size:25px;line-height:1.25;margin:0;font-weight:900;letter-spacing:-.8px}.security-screen p{font-size:15px;line-height:1.6;color:#718096;margin:12px 0 0}.security-screen .security-sub{font-size:13px;margin-top:4px}.security-actions{display:grid;gap:10px;margin-top:22px}.security-primary,.security-secondary{width:100%;min-height:70px;border-radius:18px!important;text-align:left;padding:12px 16px!important;display:grid;grid-template-columns:42px 1fr;grid-template-rows:auto auto;column-gap:8px;align-items:center}.security-primary{background:#2563eb;color:#fff}.security-secondary{background:#f1f4f8;color:#172033}.security-primary span,.security-secondary span{grid-row:1 / span 2;font-size:26px;text-align:center}.security-primary b,.security-secondary b{font-size:16px}.security-primary small,.security-secondary small{font-size:12px;opacity:.82;margin-top:2px}.security-primary.single{display:block;text-align:center;min-height:52px;margin-top:12px}.security-link{width:100%;margin-top:7px;background:transparent;color:#718096;font-size:14px}.security-inputs{display:grid;gap:8px;margin-top:16px}.security-inputs input,.security-pass{width:100%;height:52px!important;border:1px solid #dbe2ef!important;border-radius:15px!important;text-align:center;font-size:18px!important;font-weight:800;letter-spacing:2px}.simple-date-sheet{max-width:420px!important;border-radius:24px!important}.simple-date-sheet h2{margin:0;font-size:22px}.simple-date-sheet input[type=date]{height:54px;border:1px solid #dbe2ef;border-radius:15px;padding:0 14px;background:#f8f9fb}.app.home-mode #appHeader{padding:18px 18px 8px}.app.home-mode #appHeader .datebar{display:none}.home-screen{max-width:560px;margin:0 auto;padding:8px 16px calc(100px + env(safe-area-inset-bottom))}.home-date-card{background:#eef5ff;border-radius:20px;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}.home-date-card .home-date{font-size:16px;font-weight:900;color:#172033}.home-date-card button{background:#fff;border:0;color:#246bff;font-weight:900;border-radius:13px;padding:9px 12px;font-size:13px}.date-native-button{position:relative;display:inline-flex;align-items:center;justify-content:center;background:#fff;border:0;color:#246bff;font-weight:900;border-radius:13px;padding:9px 12px;font-size:13px;cursor:pointer;overflow:hidden}.date-native-button .date-native-overlay{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;z-index:2}.check-date-change{position:relative;overflow:hidden}.check-date-change .date-native-overlay{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;z-index:2}.home-summary{background:#fff;border-radius:18px;padding:13px 16px;display:flex;justify-content:space-between;align-items:center;box-shadow:0 3px 14px rgba(23,32,51,.045);margin-bottom:12px}.home-summary span{font-size:14px;color:#718096}.home-summary strong{font-size:18px;color:#172033}.home-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.home-card{border:0;border-radius:20px;min-height:126px;padding:17px 14px;background:#fff;box-shadow:0 3px 14px rgba(23,32,51,.055);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;cursor:pointer}.home-card:active{transform:scale(.985)}.home-card .home-icon{font-size:31px;line-height:1;margin-bottom:10px}.home-card strong{font-size:17px;font-weight:900;color:#172033;letter-spacing:-.4px}.home-card span{font-size:13px;color:#718096;margin-top:5px;line-height:1.25}.home-card.blue{background:#eef5ff}.home-card.green{background:#eefaf5}.home-card.yellow{background:#fff8e8}.home-card.purple{background:#f7f0ff}.home-card.pink{background:#fff0f4}.home-card.gray{background:#f2f4f7}.home-section-title{font-size:18px;font-weight:900;margin:18px 2px 8px;color:#172033}@media(min-width:600px){.home-screen{padding-left:22px;padding-right:22px}.home-card{min-height:138px}.home-card strong{font-size:18px}}
+.records-screen{max-width:560px;margin:0 auto}.records-topbar{height:54px;display:flex;align-items:center;justify-content:center;position:relative}.records-heading{font-size:21px;font-weight:900}.records-list{display:grid;gap:12px}.record-card{background:#fff;border-radius:20px;padding:16px;box-shadow:0 3px 14px rgba(23,32,51,.055)}.record-card .record-title{font-size:18px;font-weight:900}.record-card .record-meta{font-size:14px;color:#718096;margin-top:5px}.record-card .record-actions{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:12px}.record-card .record-actions button{min-height:44px;border-radius:14px}.new-sheet h2{font-size:22px}.new-sheet select,.new-sheet input[type=text],.new-sheet input[type=file]{height:52px;font-size:16px}.new-sheet .primary{min-height:52px;font-size:16px}.new-sheet .close{min-height:46px}
+
+/* v10 버튼 규칙: 박스 크기는 고정, 글씨만 확대 */
+.check-route-card{min-height:56px!important;padding:8px 52px!important}.check-route-card span:first-child{font-size:21px!important}.check-manage-actions button{min-height:52px!important;height:52px!important;font-size:19px!important}.check-excel-btn{min-height:52px!important;height:52px!important;font-size:19px!important}
+
+/* v11 디자인 비율 보정 — 승인된 체크 목업을 기준으로 박스와 글씨의 비율을 통일 */
+.check-route-card{min-height:52px!important;height:52px!important;padding:8px 48px!important;border-radius:16px!important}
+.check-route-card span:first-child{font-size:16px!important;line-height:1!important;font-weight:900!important}
+.check-route-card span:last-child{right:16px;font-size:29px!important}
+.check-manage-actions{gap:12px!important}
+.check-manage-actions button{height:52px!important;min-height:52px!important;padding:0 10px!important;font-size:17px!important;line-height:1!important}
+.check-excel-btn{height:52px!important;min-height:52px!important;padding:0 12px!important;font-size:17px!important;line-height:1!important}
+/* 날짜 카드: 목업처럼 카드 높이에 비해 날짜/체크 텍스트가 과도하게 커지지 않도록 조정 */
+.check-date-card{padding:13px 14px!important;border-radius:18px!important}
+.check-date-text{font-size:15px!important;line-height:1.25!important}
+.check-date-change{font-size:12px!important;padding:8px 11px!important}
+.check-count-row strong{font-size:20px!important;line-height:1.15!important}
+.check-count-row span{font-size:12px!important}
+/* 초기 보안 설정도 관리 화면과 같은 카드 비율을 사용하되 불필요한 확인 단계는 두지 않음 */
+.security-actions{gap:10px!important}
+.security-primary,.security-secondary{min-height:64px!important;height:64px!important}
+
+/* v14: 날짜 변경은 별도 중간 화면 없이 기기 기본 날짜 선택기로 바로 연결 */
+#checkDatePicker{display:none!important}
+#nativeDatePicker{position:fixed;left:1px;top:1px;width:1px;height:1px;opacity:0;z-index:-1;border:0;padding:0;pointer-events:none}
+/* v17: 목록에서 검증된 input[type=date]와 동일한 실제 날짜 입력을 홈/체크의 변경 위치에 배치 */
+.date-native-wrap{position:relative;display:inline-flex;align-items:center;justify-content:center;background:#fff;color:#246bff;font-weight:900;border-radius:13px;padding:9px 12px;font-size:13px;min-width:52px;height:36px;box-sizing:border-box;overflow:hidden}
+.date-native-wrap input.date-native-direct{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;border:0;padding:0;margin:0;z-index:2}
+.check-date-direct{position:relative;display:inline-flex;align-items:center;justify-content:center;background:#eaf2ff;color:#2563eb;font-size:12px;font-weight:900;border-radius:11px;padding:8px 11px;min-width:48px;height:34px;box-sizing:border-box;overflow:hidden}
+.check-date-direct input.date-native-direct{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;border:0;padding:0;margin:0;z-index:2}
+.route-sheet-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px}
+.route-switch-single{grid-template-columns:1fr!important}
+.route-modal-sheet{padding-bottom:calc(96px + env(safe-area-inset-bottom))!important}
+body.route-open nav{z-index:25;background:rgba(255,255,255,.72);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);box-shadow:0 -2px 14px rgba(23,32,51,.08)}
+body.route-open nav button{color:#6d7788}
+body.route-open nav button.active{color:#2563eb}
+</style>
+</head>
+<body>
+<div id="splash" class="splash" aria-label="방문 체크북 시작 화면"><div class="splash-art"><div class="splash-map"></div><div class="splash-pin">•</div><div class="splash-house">⌂</div></div><div class="splash-title"><span>방문</span> 체크북</div><div class="splash-sub">소중한 방문을 간단하게 기록하세요</div><div class="splash-line"><i></i></div></div>
+<div class="app">
+<header id="appHeader">
+ <div class="title">📋 방문 체크북</div>
+ <div class="datebar"><input id="datePicker" type="date"><span>날짜</span></div>
+</header>
+<main id="main"></main>
+<nav>
+ <button id="navHome" onclick="navigateTab('home')">⌂<br>홈</button>
+ <button id="navCheck" onclick="navigateTab('check')">📋<br>체크</button>
+ <button id="navRecords" onclick="navigateTab('records')">🗂<br>목록</button>
+ <button id="navManage" onclick="navigateTab('settings')">⚙<br>설정</button>
+</nav>
+</div>
+<div class="modal" id="manageDetailModal"><div class="sheet manage-sheet"><h2 id="manageDetailTitle">설정</h2><div id="manageDetailBody"></div><button class="close" onclick="closeManageDetail()">닫기</button></div></div>
+<div class="modal" id="voiceModal"><div class="sheet">
+ <h2>🎤 음성 체크</h2><div id="voiceMsg">이름을 말씀하세요.</div><div id="voiceResults"></div>
+ <button class="close" onclick="closeVoice()">닫기</button>
+</div></div>
+<div class="modal" id="addModal"><div class="sheet">
+ <h2>＋ 대상자 추가</h2>
+ <input id="addName" type="text" placeholder="이름">
+ <input id="addBirth" type="text" placeholder="생년월일 (예: 1950-05-08)" style="margin-top:8px">
+ <input id="addPhone" type="text" placeholder="전화번호" style="margin-top:8px">
+ <input id="addAddress" type="text" placeholder="주소" style="margin-top:8px">
+ <button class="primary" style="width:100%;margin-top:10px" onclick="addPerson()">명단에 추가</button>
+ <button class="close" onclick="closeAdd()">취소</button>
+</div></div>
+<div class="modal" id="memoModal"><div class="sheet">
+ <h2>📝 메모</h2><div id="memoPerson" class="muted" style="margin-bottom:8px"></div>
+ <textarea id="memoText" rows="4" style="width:100%;padding:12px;border:1px solid #dbe2ef;border-radius:13px;font-size:16px;resize:vertical" placeholder="간단한 메모를 입력하세요."></textarea>
+ <button class="primary" style="width:100%;margin-top:10px" onclick="saveMemo()">저장</button>
+ <button class="close" onclick="closeMemo()">취소</button>
+</div></div>
+<div class="modal" id="specialModal"><div class="sheet">
+ <h2>체크 정보</h2><div id="specialPerson" class="muted" style="margin-bottom:8px"></div>
+ <select id="specialRelation"><option value="">체크하지 않음</option><option value="본인">본인</option><option value="가족">가족</option><option value="기타">기타</option></select>
+ <div style="display:flex;gap:8px;margin-top:8px"><select id="specialHour"><option value="">시</option></select><select id="specialMinute"><option value="">분</option></select></div>
+ <button class="primary" style="width:100%;margin-top:10px" onclick="saveSpecialModal()">저장</button>
+ <button class="close" onclick="closeSpecialModal()">취소</button>
+</div></div>
+<div class="modal" id="newModal"><div class="sheet new-sheet">
+ <h2>🆕 새로운 체크북</h2>
+ <p class="muted">업무 주제를 선택하면 주제에 맞는 체크 방식으로 시작합니다.</p>
+ <select id="newTopicType" onchange="updateNewTopicUI()"><option value="방문상담">방문상담</option><option value="물품수령">물품수령</option><option value="출석체크">출석체크</option><option value="안부확인">안부확인</option><option value="기타">기타</option></select>
+ <input id="newTitle" type="text" placeholder="기타 주제명" style="margin-top:8px;display:none">
+ <input id="newFile" type="file" accept=".xlsm,.xlsx,.xls" style="margin-top:8px">
+ <button class="primary" style="width:100%;margin-top:8px" onclick="createNewTopic()">새 체크북 시작</button>
+ <button class="close" onclick="closeNew()">취소</button>
+</div></div>
+<div class="modal" id="routeModal"><div class="sheet route-modal-sheet">
+ <div class="route-sheet-head"><div><h2 style="margin:0">🚗 동선 만들기</h2><div class="muted" style="margin-top:4px">현재 위치와 방문 순서를 확인합니다.</div></div></div>
+ <div id="routeLocation" class="muted" style="margin-bottom:8px">순서를 정할 기준을 선택하세요.</div>
+ <div class="route-mode">
+  <label><input type="radio" name="routeMode" value="near" checked onchange="setRouteMode(this.value)"><span>📍 가까운 순서</span><span class="hint">현재 위치 기준</span></label>
+  <label><input type="radio" name="routeMode" value="far" onchange="setRouteMode(this.value)"><span>📍 먼 순서</span><span class="hint">현재 위치 기준</span></label>
+  <label><input type="radio" name="routeMode" value="selected" onchange="setRouteMode(this.value)"><span>☑️ 선택한 순서</span><span class="hint">거리 계산 없음</span></label>
+ </div>
+ <button id="routeLocationBtn" style="width:100%;margin-bottom:10px">📍 현재 위치 확인</button>
+ <div id="routeModeHelp" class="warn">가까운 순서·먼 순서는 현재 위치와 대상자 주소의 직선거리를 계산합니다. 선택한 순서는 대상자를 체크한 순서 그대로 사용합니다.</div>
+ <div id="routePeople"></div>
+ <div id="routeResultPanel" class="route-result-panel">
+  <div class="route-result-title">🚗 만들어진 방문순서</div><div class="muted" style="margin-bottom:8px">↑ ↓ 버튼으로 방문순서를 직접 변경할 수 있습니다.</div>
+  <div id="routeResultLocation" class="route-result-sub"></div>
+  <div id="routeResult"></div>
+ </div>
+ <div class="route-switch route-switch-single"><button onclick="closeRoute()" id="routeCloseBtn">동선 완료</button></div>
+ <div class="actions" style="display:grid;grid-template-columns:1fr;gap:8px;margin-top:8px">
+  <button class="primary" onclick="buildRouteList()">방문순서 만들기</button>
+ </div>
+ </div></div>
+
+<div class="modal" id="lockOverlay" style="display:none;z-index:100;align-items:center;background:#eef2f8ee"><div class="sheet" style="border-radius:22px;max-height:90vh">
+ <div id="lockContent"></div>
+</div></div>
+<input id="nativeDatePicker" type="date" aria-label="방문 날짜 선택">
+<div class="toast" id="toast"></div>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script>
+const KEY='welfare_checkbook_from_attendance_v1';
+const LOCK_KEY='welfare_checkbook_security_v1';
+const PBKDF2_ITERATIONS=150000;
+let security={enabled:false,autoLockMinutes:0,salt:null,iterations:PBKDF2_ITERATIONS};
+let cryptoKey=null,appUnlocked=false,saveChain=Promise.resolve(),lockTimer=null,lastActivity=Date.now();
+function defaultState(){return {
+ people:[
+  {id:'1',name:'김창억',birth:'1949-05-01',phone:'',address:''},{id:'2',name:'박수직',birth:'1951-04-11',phone:'',address:''},
+  {id:'3',name:'조강하',birth:'1956-05-01',phone:'',address:''},{id:'4',name:'구조대',birth:'1948-07-05',phone:'',address:''},
+  {id:'5',name:'구조대',birth:'1950-05-08',phone:'',address:''},{id:'6',name:'한사방',birth:'1952-02-17',phone:'',address:''},
+  {id:'7',name:'고용대',birth:'1955-10-03',phone:'',address:''},{id:'8',name:'최수몽',birth:'1958-12-22',phone:'',address:''}
+ ],records:[],trash:[],title:'출석체크',topicType:'출석체크',date:new Date().toISOString().slice(0,10)
+}}
+let state=defaultState();
+if(!Array.isArray(state.trash)) state.trash=[];
+let tab='home',query='',deleteMode=false,deleteSelected=new Set(),activeRecordId=null,memoPersonId=null,specialPersonId=null;
+
+function getSecurityMeta(){try{return JSON.parse(localStorage.getItem(LOCK_KEY)||'null')}catch(e){return null}}
+function setSecurityMeta(){localStorage.setItem(LOCK_KEY,JSON.stringify({v:2,setupComplete:true,enabled:!!security.enabled,autoLockMinutes:Number(security.autoLockMinutes)||0,salt:security.salt,iterations:security.iterations||PBKDF2_ITERATIONS}))}
+function randomBytes(n){const a=new Uint8Array(n);crypto.getRandomValues(a);return a}
+function bytesToB64(bytes){let s='';bytes.forEach(b=>s+=String.fromCharCode(b));return btoa(s)}
+function b64ToBytes(s){const bin=atob(s);const a=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)a[i]=bin.charCodeAt(i);return a}
+async function deriveKey(password,saltB64,iterations=PBKDF2_ITERATIONS){
+ const base=await crypto.subtle.importKey('raw',new TextEncoder().encode(password),'PBKDF2',false,['deriveKey']);
+ return crypto.subtle.deriveKey({name:'PBKDF2',salt:b64ToBytes(saltB64),iterations,hash:'SHA-256'},base,{name:'AES-GCM',length:256},false,['encrypt','decrypt']);
+}
+async function encryptStateWithKey(key,obj){
+ const iv=randomBytes(12),plain=new TextEncoder().encode(JSON.stringify(obj));
+ const data=await crypto.subtle.encrypt({name:'AES-GCM',iv},key,plain);
+ return JSON.stringify({v:1,alg:'AES-GCM',iv:bytesToB64(iv),data:bytesToB64(new Uint8Array(data))});
+}
+async function decryptStateWithKey(key,stored){
+ const obj=JSON.parse(stored),plain=await crypto.subtle.decrypt({name:'AES-GCM',iv:b64ToBytes(obj.iv)},key,b64ToBytes(obj.data));
+ return JSON.parse(new TextDecoder().decode(plain));
+}
+function save(){
+ if(security.enabled && cryptoKey){
+  const snapshot=JSON.parse(JSON.stringify(state));
+  const key=cryptoKey;
+  saveChain=saveChain.then(async()=>{if(key)localStorage.setItem(KEY,await encryptStateWithKey(key,snapshot))}).catch(()=>{});
+ }else{
+  localStorage.setItem(KEY,JSON.stringify(state));
+ }
+}
+function touchActivity(){if(!appUnlocked)return;lastActivity=Date.now();if(security.enabled&&security.autoLockMinutes>0)scheduleAutoLock()}
+function scheduleAutoLock(){clearTimeout(lockTimer);if(!security.enabled||!security.autoLockMinutes||!appUnlocked)return;lockTimer=setTimeout(()=>{if(Date.now()-lastActivity>=security.autoLockMinutes*60000)lockApp();else scheduleAutoLock()},security.autoLockMinutes*60000)}
+function installActivityWatch(){['touchstart','mousedown','keydown','scroll'].forEach(ev=>document.addEventListener(ev,touchActivity,{passive:true}));document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')touchActivity()})}
+function showLock(title,html){document.getElementById('lockContent').innerHTML='<h2 style="margin-top:0">'+title+'</h2>'+html;document.getElementById('lockOverlay').style.display='flex'}
+function hideLock(){document.getElementById('lockOverlay').style.display='none'}
+function setupSecurity(){
+ showLock('',`<div class="security-screen">
+   <div class="security-icon">🔐</div>
+   <h1>보안 설정</h1>
+   <p>방문 체크북은 대상자 명단과 기록을 이 기기에 저장합니다.</p>
+   <p class="security-sub">공용 휴대폰은 비밀번호 사용을 권장합니다.</p>
+   <div class="security-actions">
+    <button class="security-primary" onclick="startPasswordSetup()"><span>🔒</span><b>비밀번호 사용</b><small>앱 실행 시 비밀번호 입력</small></button>
+    <button class="security-secondary" onclick="chooseNoPassword()"><span>🔓</span><b>비밀번호 사용 안 함</b><small>나중에 설정 → 앱 잠금에서 설정</small></button>
+   </div>
+ </div>`)
+}
+function startPasswordSetup(){
+ showLock('',`<div class="security-screen">
+   <div class="security-icon">🔒</div>
+   <h1>비밀번호 설정</h1>
+   <p>숫자 4자리를 입력하세요.</p>
+   <div class="security-inputs"><input id="setupPw" type="password" autocomplete="new-password" placeholder="비밀번호 4자리" inputmode="numeric" pattern="\d{4}" maxlength="4"><input id="setupPw2" type="password" autocomplete="new-password" placeholder="한 번 더 입력" inputmode="numeric" pattern="\d{4}" maxlength="4"></div>
+   <div id="setupMsg" class="warn" style="display:none"></div>
+   <button class="security-primary single" onclick="completePasswordSetup()"><b>비밀번호 설정</b></button>
+   <button class="security-link" onclick="setupSecurity()">뒤로</button>
+ </div>`)
+}
+async function completePasswordSetup(){
+ const p=document.getElementById('setupPw').value,p2=document.getElementById('setupPw2').value,msg=document.getElementById('setupMsg');
+ if(!/^\d{4}$/.test(p)){msg.textContent='비밀번호는 숫자 4자리로 입력하세요.';msg.style.display='block';return}
+ if(p!==p2){msg.textContent='비밀번호가 일치하지 않습니다.';msg.style.display='block';return}
+ security={enabled:true,autoLockMinutes:0,salt:bytesToB64(randomBytes(16)),iterations:PBKDF2_ITERATIONS,setupComplete:true};
+ localStorage.removeItem(GEOCODE_CACHE_KEY);
+ cryptoKey=await deriveKey(p,security.salt,security.iterations);setSecurityMeta();save();appUnlocked=true;hideLock();installActivityWatch();const dp=document.getElementById('datePicker');if(dp)dp.value=state.date;render();toast('🔒 앱 잠금이 설정되었습니다.');
+}
+function chooseNoPassword(){
+ security={enabled:false,autoLockMinutes:0,salt:null,iterations:PBKDF2_ITERATIONS,setupComplete:true};cryptoKey=null;setSecurityMeta();
+ try{const raw=localStorage.getItem(KEY);if(raw){const parsed=JSON.parse(raw);if(parsed&&parsed.data&&parsed.iv){alert('암호화된 기록은 현재 비밀번호가 필요합니다.');return}}}catch(e){}
+ appUnlocked=true;hideLock();installActivityWatch();const dp=document.getElementById('datePicker');if(dp)dp.value=state.date;render();
+}
+async function unlockWithPassword(){
+ const input=document.getElementById('unlockPw'),msg=document.getElementById('unlockMsg'),p=input.value;if(!p){msg.textContent='비밀번호를 입력하세요.';msg.style.display='block';return}
+ try{
+  cryptoKey=await deriveKey(p,security.salt,security.iterations||PBKDF2_ITERATIONS);
+  const raw=localStorage.getItem(KEY);state=await decryptStateWithKey(cryptoKey,raw);if(!Array.isArray(state.trash))state.trash=[];
+  appUnlocked=true;hideLock();installActivityWatch();const dp=document.getElementById('datePicker');if(dp)dp.value=state.date;render();touchActivity();
+ }catch(e){cryptoKey=null;msg.textContent='비밀번호가 맞지 않거나 저장된 데이터가 손상되었습니다.';msg.style.display='block';input.select()}
+}
+function showUnlock(){showLock('',`<div class="security-screen">
+ <div class="security-icon">🔒</div>
+ <h1>앱 잠금</h1>
+ <p>방문 체크북을 사용하려면 비밀번호를 입력하세요.</p>
+ <input id="unlockPw" class="security-pass" type="password" autocomplete="current-password" placeholder="숫자 4자리" inputmode="numeric" maxlength="4">
+ <div id="unlockMsg" class="warn" style="display:none"></div>
+ <button class="security-primary single" onclick="unlockWithPassword()"><b>잠금 해제</b></button>
+ </div>`);setTimeout(()=>document.getElementById('unlockPw')?.focus(),50)}
+async function bootSecurity(){
+ const meta=getSecurityMeta(),raw=localStorage.getItem(KEY);
+ if(meta&&meta.enabled){security=meta;showUnlock();return}
+ if(!meta || meta.setupComplete!==true){
+  // 기존 v2.10 사용자 또는 구버전 보안 설정 정보가 있는 기기도
+  // 새 보안 방식 선택을 한 번은 거치도록 한다.
+  if(raw){try{state=JSON.parse(raw)}catch(e){state=defaultState()}}
+  setupSecurity();return;
+ }
+ security=meta;security.enabled=false;cryptoKey=null;
+ if(raw){try{state=JSON.parse(raw)}catch(e){state=defaultState()}}
+ appUnlocked=true;installActivityWatch();const dp=document.getElementById('datePicker');if(dp)dp.value=state.date;render();
+}
+async function lockApp(){if(!security.enabled||!appUnlocked)return;appUnlocked=false;cryptoKey=null;clearTimeout(lockTimer);showUnlock()}
+async function changePassword(){
+ if(!security.enabled||!cryptoKey){startPasswordSetup();return}
+ const old=prompt('현재 비밀번호를 입력하세요.');if(old===null)return;
+ try{const k=await deriveKey(old,security.salt,security.iterations||PBKDF2_ITERATIONS);await decryptStateWithKey(k,localStorage.getItem(KEY))}catch(e){alert('현재 비밀번호가 맞지 않습니다.');return}
+ const np=prompt('새 비밀번호를 입력하세요.\n숫자 4자리로 입력하세요.');if(np===null)return;if(!/^\d{4}$/.test(np)){alert('비밀번호는 숫자 4자리로 입력하세요.');return}
+ const np2=prompt('새 비밀번호를 다시 입력하세요.');if(np!==np2){alert('새 비밀번호가 일치하지 않습니다.');return}
+ security.salt=bytesToB64(randomBytes(16));cryptoKey=await deriveKey(np,security.salt,security.iterations||PBKDF2_ITERATIONS);setSecurityMeta();save();toast('비밀번호가 변경되었습니다.');
+}
+async function disablePassword(){
+ if(!security.enabled||!cryptoKey)return;
+ if(!confirm('비밀번호 사용을 해제할까요?\n이후에는 기기의 브라우저 저장공간에 암호화되지 않은 형태로 저장됩니다.'))return;
+ const current=prompt('현재 비밀번호를 입력하세요.');if(current===null)return;
+ try{const k=await deriveKey(current,security.salt,security.iterations||PBKDF2_ITERATIONS);state=await decryptStateWithKey(k,localStorage.getItem(KEY))}catch(e){alert('현재 비밀번호가 맞지 않습니다.');return}
+ security={enabled:false,autoLockMinutes:0,salt:null,iterations:PBKDF2_ITERATIONS,setupComplete:true};cryptoKey=null;setSecurityMeta();save();toast('비밀번호 사용을 해제했습니다.');render();
+}
+function setAutoLock(v){security.autoLockMinutes=Number(v)||0;setSecurityMeta();if(security.autoLockMinutes)scheduleAutoLock();else clearTimeout(lockTimer);toast('자동 잠금 설정이 저장되었습니다.')}
+
+function esc(s){return String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
+function nameNorm(s){return String(s||'').replace(/\s+/g,'').toLowerCase()}
+function phoneNorm(s){return String(s||'').replace(/[^\d+]/g,'')}
+function birthNorm(v){
+ if(v===null||v===undefined||v==='')return '';
+ if(v instanceof Date&&!isNaN(v))return v.getFullYear()+'-'+String(v.getMonth()+1).padStart(2,'0')+'-'+String(v.getDate()).padStart(2,'0');
+ let s=String(v).trim().replace(/\s/g,'');
+ let m=s.match(/^(\d{4})[-./](\d{1,2})[-./](\d{1,2})$/);if(m)return m[1]+'-'+m[2].padStart(2,'0')+'-'+m[3].padStart(2,'0');
+ if(/^\d{8}$/.test(s))return s.slice(0,4)+'-'+s.slice(4,6)+'-'+s.slice(6,8);
+ if(/^\d{6}$/.test(s)){let yy=+s.slice(0,2);return (yy<=25?2000+yy:1900+yy)+'-'+s.slice(2,4)+'-'+s.slice(4,6)}
+ let n=Number(s);if(isFinite(n)&&n>20000&&n<70000){let d=new Date(Date.UTC(1899,11,30)+n*86400000);return d.getUTCFullYear()+'-'+String(d.getUTCMonth()+1).padStart(2,'0')+'-'+String(d.getUTCDate()).padStart(2,'0')}
+ return s
+}
+function birth6(b){let m=String(b||'').match(/^(\d{4})-(\d{2})-(\d{2})$/);return m?m[1].slice(2)+m[2]+m[3]:b||''}
+function getRecord(create=true){
+ let r=activeRecordId ? state.records.find(x=>x.id===activeRecordId) : state.records.find(x=>x.date===state.date&&x.title===state.title);
+ if(!r&&create){
+  r={id:crypto.randomUUID(),date:state.date,title:state.title,topicType:state.topicType||'기타',checks:{},people:state.people.map(p=>({...p}))};
+  state.records.push(r);activeRecordId=r.id;
+ }
+ if(r){
+  state.date=r.date||state.date;
+  state.title=r.title||state.title||'기타';
+  state.topicType=r.topicType||inferTopicType(state.title);
+  // 기록에 명단이 있으면 반드시 그 명단을 현재 화면으로 복원한다.
+  // 구버전 기록에 명단이 없으면 현재 명단을 기록에 스냅샷으로 저장한다.
+  if(Array.isArray(r.people) && r.people.length){
+    state.people=r.people.map(p=>({...p}));
+  }else if(state.people.length){
+    r.people=state.people.map(p=>({...p}));
+  }
+ }
+ return r
+}
+function checkedSet(){let r=getRecord(false);return new Map(r?Object.keys(r.checks).filter(k=>r.checks[k]).map(k=>[k,r.checks[k]]):[])}
+function specialTopic(){return ['방문상담','물품수령','안부확인'].includes(state.topicType)}
+function parseCheck(v){
+ if(v && typeof v==='object') return {relation:v.relation||'',time:v.time||'',memo:v.memo||'',checked:v.checked!==false};
+ if(typeof v==='string' && ['본인','가족','기타'].includes(v)) return {relation:v,time:'',memo:'',checked:true};
+ if(v===true) return {relation:'',time:'',memo:'',checked:true};
+ return {relation:'',time:'',memo:'',checked:false};
+}
+function setSpecialCheck(id,relation,hour,minute){
+ let r=getRecord();
+ const time=(hour&&minute)?hour+':'+minute:'';
+ const old=parseCheck(r.checks[id]);
+ if(!relation){delete r.checks[id];}
+ else{r.checks[id]={relation,time,memo:old.memo||'',checked:true};}
+ r.people=state.people.map(p=>({...p}));
+ save();render();toast(relation?relation+(time?' · '+time:'')+'로 체크되었습니다.':'체크가 취소되었습니다.');
+}
+function updateSpecialTime(id){
+ const r=getRecord();
+ const info=parseCheck(r?.checks?.[id]);
+ if(!info.relation)return;
+ const h=document.getElementById('tmh_'+String(id)),m=document.getElementById('tmm_'+String(id));
+ const time=h?.value&&m?.value?h.value+':'+m.value:'';
+ r.checks[id]={relation:info.relation,time,memo:info.memo||'',checked:true};
+ r.people=state.people.map(p=>({...p}));
+ save();
+ toast(time?'만난 시간이 저장되었습니다.':'만난 시간이 해제되었습니다.');
+}
+function setVisitType(id,value){setSpecialCheck(id,value,'')}
+function toggle(id){
+ let r=getRecord(),s=checkedSet();
+ r.people=state.people.map(p=>({...p}));
+ if(s.has(String(id))){delete r.checks[id];toast('체크가 취소되었습니다.')}
+ else{r.checks[id]={checked:true,memo:''};toast('✓ 체크되었습니다.')}
+ query='';
+ save();
+ render();
+}
+function setNav(){document.getElementById('navHome').classList.toggle('active',tab==='home');document.getElementById('navCheck').classList.toggle('active',tab==='check');document.getElementById('navRecords').classList.toggle('active',tab==='records');document.getElementById('navManage').classList.toggle('active',tab==='settings')}
+function inferTopicType(title){const t=String(title||'');if(['방문상담','물품수령','출석체크','안부확인'].includes(t))return t;if(t==='출석')return '출석체크';return '기타'}
+function updateNewTopicUI(){const type=document.getElementById('newTopicType')?.value||'기타';const input=document.getElementById('newTitle');if(!input)return;input.style.display=type==='기타'?'block':'none';if(type!=='기타')input.value=type}
+function newTopic(){
+ activeRecordId=null;
+ document.getElementById('newTopicType').value='방문상담';
+ document.getElementById('newTitle').value='';
+ document.getElementById('newFile').value='';
+ updateNewTopicUI();
+ document.getElementById('newModal').style.display='flex';
+ document.getElementById('newTitle').focus();
+}
+function closeNew(){document.getElementById('newModal').style.display='none'}
+function createNewTopic(){
+ const topicType=document.getElementById('newTopicType').value;
+ const customTitle=document.getElementById('newTitle').value.trim();
+ const title=topicType==='기타'?(customTitle||'기타'):topicType;
+ const f=document.getElementById('newFile').files[0];
+ if(!title){alert('새로운 주제명을 입력하세요.');return}
+ if(!f){
+   state.people=[];
+   state.title=title;
+   state.topicType=topicType;
+   state.date=new Date().toISOString().slice(0,10);
+   query='';
+   deleteMode=false;
+   deleteSelected=new Set();
+   const nr={id:crypto.randomUUID(),date:state.date,title:state.title,topicType:state.topicType||'기타',checks:{},people:[]};
+   state.records.push(nr);
+   activeRecordId=nr.id;
+   save();
+   closeNew();
+   tab='check';
+   document.getElementById('datePicker').value=state.date;
+   render();
+   toast('새 체크북이 시작되었습니다 · 화면에서 명단을 추가하세요');
+   return;
+ }
+ const reader=new FileReader();
+ reader.onload=e=>{
+  try{
+   const wb=XLSX.read(e.target.result,{type:'array',cellDates:true});
+   const ws=wb.Sheets[wb.SheetNames[0]];
+   const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:'',raw:true});
+   let h=rows.findIndex(row=>row.some(v=>['이름','성명','대상자명','대상자'].includes(String(v).trim())));
+   if(h<0)h=5;
+   const heads=rows[h].map(v=>String(v).trim());
+   let ni=heads.findIndex(v=>['이름','성명','대상자명','대상자'].includes(v));if(ni<0)ni=1;
+   let bi=heads.findIndex(v=>v.includes('생년'));if(bi<0)bi=2;
+   let pi=heads.findIndex(v=>v.includes('전화')||v.includes('휴대'));if(pi<0)pi=3;
+   const people=[];
+   rows.slice(h+1).forEach(row=>{
+    const name=String(row[ni]??'').trim();if(!name)return;
+    let ai=heads.findIndex(v=>v.includes('주소')||v.includes('거주지')||v.includes('도로명')); if(ai<0)ai=4;
+    people.push({id:crypto.randomUUID(),name,birth:birthNorm(row[bi]),phone:String(row[pi]??'').trim(),address:String(row[ai]??'').trim()});
+   });
+   if(!people.length){alert('Excel에서 대상자 명단을 찾지 못했습니다.');return}
+   state.people=people;
+   state.title=title;
+   state.topicType=topicType;
+   state.date=new Date().toISOString().slice(0,10);
+   query='';
+   const nr={id:crypto.randomUUID(),date:state.date,title:state.title,topicType:state.topicType||'기타',checks:{},people:people.map(p=>({...p}))};
+   state.records.push(nr);
+   activeRecordId=nr.id;
+   save();
+   closeNew();
+   tab='check';
+   document.getElementById('datePicker').value=state.date;
+   render();
+   toast('새 체크북이 시작되었습니다 · '+people.length+'명');
+  }catch(err){alert('Excel 읽기 오류: '+err.message)}
+ };
+ reader.readAsArrayBuffer(f);
+}
+function navigateTab(nextTab){document.getElementById('routeModal').style.display='none';document.body.classList.remove('route-open');tab=nextTab;render();}
+function render(){setNav();const app=document.querySelector('.app');app?.classList.toggle('check-mode',tab==='check');app?.classList.toggle('manage-mode',tab==='settings');app?.classList.toggle('home-mode',tab==='home');const titleEl=document.querySelector('#appHeader .title');if(titleEl)titleEl.textContent='📋 방문 체크북';if(tab==='home')renderHome();else if(tab==='check')renderCheck();else if(tab==='records')renderRecords();else if(tab==='settings')renderManage()}
+document.getElementById('datePicker').value=state.date;document.getElementById('datePicker').onchange=e=>{applyGlobalDate(e.target.value)};
+const nativeDatePicker=document.getElementById('nativeDatePicker');
+nativeDatePicker.value=state.date;
+nativeDatePicker.addEventListener('change',e=>applyGlobalDate(e.target.value));
+function applyGlobalDate(v){
+ if(!v)return;
+ state.date=v;
+ if(activeRecordId){const r=state.records.find(x=>x.id===activeRecordId);if(r)r.date=v;}
+ save();
+ const dp=document.getElementById('datePicker');if(dp)dp.value=v;
+ const ndp=document.getElementById('nativeDatePicker');if(ndp)ndp.value=v;
+ render();
+ toast('방문 날짜를 변경했습니다.');
+}
+function openCheckDate(){
+ const dp=document.getElementById('nativeDatePicker');
+ if(!dp)return;
+ dp.value=state.date||new Date().toISOString().slice(0,10);
+ try{
+   if(typeof dp.showPicker==='function'){dp.showPicker();}
+   else{dp.focus();dp.click();}
+ }catch(e){try{dp.focus();dp.click();}catch(_){} }
+}
+function formatCheckDate(v){
+ const d=new Date(v+'T00:00:00');
+ if(Number.isNaN(d.getTime()))return v;
+ const days=['일','월','화','수','목','금','토'];
+ return `${d.getFullYear()}년 ${d.getMonth()+1}월 ${d.getDate()}일 (${days[d.getDay()]})`;
+}
+function renderHome(){
+ const total=state.people.length;
+ const d=new Date((state.date||new Date().toISOString().slice(0,10))+'T00:00:00');
+ const days=['일','월','화','수','목','금','토'];
+ const dateLabel=Number.isNaN(d.getTime())?state.date:`${d.getFullYear()}년 ${d.getMonth()+1}월 ${d.getDate()}일 (${days[d.getDay()]})`;
+ main.innerHTML=`<div class="home-screen">
+   <div class="home-date-card"><div class="home-date">📅 ${esc(dateLabel)}</div><span class="date-native-wrap">변경<input class="date-native-direct" type="date" value="${esc(state.date)}" aria-label="방문 날짜 변경" onchange="applyGlobalDate(this.value)"></span></div>
+   <div class="home-summary"><span>오늘 방문 예정</span><strong>${total}명 ›</strong></div>
+   <div class="home-grid">
+    <button class="home-card blue" onclick="navigateTab('check')"><div class="home-icon">✓</div><strong>방문 체크</strong><span>오늘 방문 기록</span></button>
+    <button class="home-card green" onclick="openRoute()"><div class="home-icon">🚗</div><strong>동선 만들기</strong><span>방문 순서 · 길찾기</span></button>
+    <button class="home-card yellow" onclick="navigateTab('check')"><div class="home-icon">☰</div><strong>대상자 목록</strong><span>명단 관리</span></button>
+    <button class="home-card purple" onclick="newTopic()"><div class="home-icon">＋</div><strong>새 방문기록</strong><span>새 체크북 시작</span></button>
+    <button class="home-card pink" onclick="navigateTab('records')"><div class="home-icon">▮▮▮</div><strong>방문 내역</strong><span>기록 조회</span></button>
+    <button class="home-card gray" onclick="navigateTab('settings')"><div class="home-icon">⚙</div><strong>설정</strong><span>앱 설정 · 공유</span></button>
+   </div>
+ </div>`;
+}
+function openHomeDate(){openCheckDate()}
+
+function renderCheck(){
+ query='';
+ const r=getRecord(false),s=checkedSet(),list=state.people.filter(p=>!query||nameNorm(p.name).includes(nameNorm(query))||birth6(p.birth).includes(query.replace(/-/g,'')));
+ const pct=state.people.length?Math.round(s.size/state.people.length*100):0;
+ main.innerHTML=`<div class="check-screen">
+   <div class="check-topbar">
+     <button class="check-back" onclick="navigateTab('home')" aria-label="뒤로">‹</button>
+     <div class="check-heading">방문 체크</div>
+     <div class="check-top-actions"><button aria-label="검색">⌕</button><button aria-label="더보기">⋮</button></div>
+   </div>
+   <section class="check-date-card">
+     <div class="check-date-row"><div class="check-date-text">📅 ${esc(formatCheckDate(state.date))}</div><span class="check-date-direct">변경<input class="date-native-direct" type="date" value="${esc(state.date)}" aria-label="방문 날짜 변경" onchange="applyGlobalDate(this.value)"></span></div>
+     <div class="check-count-row"><strong>${s.size} / ${state.people.length}명</strong><span>${pct}%</span></div>
+     <div class="check-progress"><i style="width:${pct}%"></i></div>
+   </section>
+   <button class="check-route-card" onclick="openRoute()"><span>🚗&nbsp; 동선 만들기</span><span>›</span></button>
+   ${renderSavedRouteCard()}
+   <div class="check-search-card">${activeRecordId?'<div class="ok" style="margin-bottom:8px">✏️ 기존 기록을 수정 중입니다.</div>':''}${state.topicType==='기타'?`<input id="titleInput" type="text" value="${esc(state.title)}" placeholder="기타 주제명" style="margin-bottom:8px">`:''}
+     <div class="searchrow"><input id="search" type="search" value="" placeholder="🔍 대상자 이름 검색" autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false" name="person_search"><button class="mic" id="mic">🎙️</button></div>
+   </div>
+   <div id="searchList" class="list check-people"></div>
+   <div id="peopleTools"></div>
+ </div>`;
+ const titleInput=document.getElementById('titleInput'); if(titleInput)titleInput.onchange=e=>{state.title=e.target.value.trim()||'기타';state.topicType='기타';const rr=activeRecordId?state.records.find(x=>x.id===activeRecordId):null;if(rr){rr.title=state.title;rr.topicType='기타'}save();render()};
+ document.getElementById('search').oninput=e=>{query=e.target.value;drawSearch()};
+ document.getElementById('mic').onclick=voiceInput;drawSearch();drawPeopleTools();
+}
+
+function drawSearch(){
+ const box=document.getElementById('searchList');if(!box)return;
+ const list=state.people.filter(p=>!query||nameNorm(p.name).includes(nameNorm(query))||birth6(p.birth).includes(query.replace(/-/g,'')));
+ if(!state.people.length){box.innerHTML='<div class="warn">명단이 없습니다. 아래의 추가 또는 Excel 명단 불러오기를 이용하세요.</div>';return}
+ if(!list.length){box.innerHTML='<div class="warn">검색 결과가 없습니다.</div>';return}
+ const s=checkedSet();
+ box.innerHTML=list.map((p)=>{
+   const idx=list.indexOf(p)+1;
+   const num=`<div class="num">${idx}.</div>`;
+   const del=deleteMode?`<input type="checkbox" ${deleteSelected.has(String(p.id))?'checked':''} onchange="setDelete('${String(p.id).replace(/'/g,"\\'")}',this.checked)" style="width:22px;height:22px">`:'';
+   const key=String(p.id).replace(/'/g,"\\'");
+   let control='';
+   if(!deleteMode){
+     const info=parseCheck(s.get(String(p.id)));
+     const hasCheck=s.has(String(p.id));
+     if(specialTopic()){
+       const label=info.relation ? esc(info.relation)+(info.time?' · '+esc(info.time):'') : '체크';
+       control=`<button class="status compact ${hasCheck?'on':'off'}" onclick="openSpecialModal('${key}')">${hasCheck?'✓ ':''}${label}</button>`;
+     }else{
+       control=`<button class="status ${hasCheck?'on':'off'}" onclick="toggle('${key}')">${hasCheck?'✓ 체크':'체크'}</button>`;
+     }
+     const memoBtn=`<button class="small memo ${info.memo?'has':''}" onclick="openMemo('${key}')">${info.memo?'📝 메모✓':'메모'}</button>`;
+     control += memoBtn;
+   }
+   return `<div class="person v5-person ${deleteMode?'delete-mode':''}">${num}${del}<div class="name">${esc(p.name)}<span class="birth">${esc(birth6(p.birth))}${p.phone?' · '+esc(p.phone):''}${p.address?' · '+esc(p.address):''}</span></div><div class="actions">${deleteMode?'':(p.phone?`<a class="call" href="tel:${esc(phoneNorm(p.phone))}" aria-label="전화">📞</a>`:'')}${control}</div></div>`;
+ }).join('')
+}
+function drawPeopleTools(){
+ const box=document.getElementById('peopleTools');if(!box)return;
+ if(deleteMode){
+   const total=state.people.length, selected=deleteSelected.size;
+   box.innerHTML=`<b>명단 삭제</b><p class="muted">삭제할 사람을 여러 명 선택할 수 있습니다. 삭제해도 기존 기록은 남습니다.</p><div class="actions" style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><button onclick="selectAllForDelete()">${selected===total&&total?'☑ 모두 해제':'☐ 모두 선택'}</button><button class="danger" onclick="deleteSelectedPeople()">선택 ${selected}명 삭제</button></div><button style="width:100%;margin-top:8px" onclick="cancelDeleteMode()">취소</button>`;
+ }else{
+   box.innerHTML=`<b style="font-size:20px">명단 관리</b><p class="muted" style="font-size:16px;line-height:1.5">화면에서 한 사람씩 추가하거나 여러 명을 선택해 삭제할 수 있습니다.</p><div class="check-manage-actions"><button class="primary" onclick="openAddPerson()">＋ 사람 추가</button><button class="danger" onclick="startDeleteMode()">🗑 여러 명 삭제</button></div><div class="check-excel-wrap"><input id="excelFile" type="file" accept=".xlsm,.xlsx,.xls"><button class="check-excel-btn" onclick="importExcel()">📥 Excel 명단 불러오기</button></div>`;
+ }
+}
+function startDeleteMode(){deleteMode=true;deleteSelected=new Set();render();}
+function cancelDeleteMode(){deleteMode=false;deleteSelected=new Set();render();}
+function selectAllForDelete(){
+ if(!state.people.length)return;
+ if(deleteSelected.size===state.people.length) deleteSelected=new Set();
+ else deleteSelected=new Set(state.people.map(p=>String(p.id)));
+ drawPeopleTools();
+ drawPeople();
+}
+function setDelete(id,checked){if(checked)deleteSelected.add(String(id));else deleteSelected.delete(String(id));drawPeopleTools();drawSearch()}
+function deleteSelectedPeople(){
+ if(!deleteSelected.size){alert('삭제할 사람을 선택하세요.');return}
+ const ids=new Set([...deleteSelected].map(String));
+ if(!confirm(`선택한 ${ids.size}명을 현재 명단에서 삭제할까요?\n이미 저장된 과거 기록은 그대로 보존됩니다.`))return;
+ // 현재 명단에서 실제 삭제
+ state.people=state.people.filter(p=>!ids.has(String(p.id)));
+ // 현재 편집 중인 기록에서도 삭제한 사람 제거
+ const current=activeRecordId
+   ? state.records.find(x=>x.id===activeRecordId)
+   : state.records.find(x=>x.date===state.date && x.title===state.title);
+ if(current){
+   current.people=state.people.map(p=>({...p}));
+   current.checks=current.checks||{};
+   ids.forEach(id=>delete current.checks[id]);
+ }
+ deleteMode=false;
+ deleteSelected=new Set();
+ save();
+ render();
+ toast(`${ids.size}명이 현재 명단에서 삭제되었습니다.`);
+}
+
+function openAddPerson(){document.getElementById('addName').value='';document.getElementById('addBirth').value='';document.getElementById('addPhone').value='';document.getElementById('addAddress').value='';document.getElementById('addModal').style.display='flex';document.getElementById('addName').focus()}
+function closeAdd(){document.getElementById('addModal').style.display='none'}
+function addPerson(){
+ const name=document.getElementById('addName').value.trim();if(!name){alert('이름을 입력하세요.');return}
+ const person={id:crypto.randomUUID(),name,birth:birthNorm(document.getElementById('addBirth').value),phone:document.getElementById('addPhone').value.trim(),address:document.getElementById('addAddress').value.trim()};
+ let r=activeRecordId?state.records.find(x=>x.id===activeRecordId):null;
+ if(!r){
+   r=getRecord(true);
+ }
+ state.people.push(person);
+ r.people=state.people.map(p=>({...p}));
+ save();closeAdd();render();toast(name+'님을 명단에 추가했습니다.');
+}
+function openMemo(id){
+ memoPersonId=String(id);
+ const p=state.people.find(x=>String(x.id)===memoPersonId);
+ const r=getRecord(false);
+ const info=parseCheck(r?.checks?.[memoPersonId]);
+ document.getElementById('memoPerson').textContent=p?p.name:'';
+ document.getElementById('memoText').value=info.memo||'';
+ document.getElementById('memoModal').style.display='flex';
+ document.getElementById('memoText').focus();
+}
+function closeMemo(){document.getElementById('memoModal').style.display='none';memoPersonId=null}
+function saveMemo(){
+ if(!memoPersonId)return;
+ const r=getRecord(true);
+ const old=parseCheck(r.checks[memoPersonId]);
+ const memo=document.getElementById('memoText').value.trim();
+ if(!old.checked && !memo){delete r.checks[memoPersonId];}
+ else if(specialTopic() && old.relation){r.checks[memoPersonId]={relation:old.relation,time:old.time||'',memo,checked:true};}
+ else{r.checks[memoPersonId]={checked:old.checked||!!memo,memo};}
+ r.people=state.people.map(p=>({...p})); save(); closeMemo(); render(); toast(memo?'메모를 저장했습니다.':'메모를 삭제했습니다.');
+}
+function openSpecialModal(id){
+ specialPersonId=String(id);
+ const p=state.people.find(x=>String(x.id)===specialPersonId), r=getRecord(false), info=parseCheck(r?.checks?.[specialPersonId]);
+ document.getElementById('specialPerson').textContent=p?p.name:'';
+ document.getElementById('specialRelation').value=info.relation||'';
+ const h=document.getElementById('specialHour'),m=document.getElementById('specialMinute');
+ h.innerHTML='<option value="">시</option>'+Array.from({length:24},(_,i)=>{const v=String(i).padStart(2,'0');return `<option value="${v}" ${info.time?.slice(0,2)===v?'selected':''}>${v}시</option>`}).join('');
+ m.innerHTML='<option value="">분</option>'+Array.from({length:12},(_,i)=>{const v=String(i*5).padStart(2,'0');return `<option value="${v}" ${info.time?.slice(3)===v?'selected':''}>${v}분</option>`}).join('');
+ document.getElementById('specialModal').style.display='flex';
+}
+function closeSpecialModal(){document.getElementById('specialModal').style.display='none';specialPersonId=null}
+function saveSpecialModal(){
+ if(!specialPersonId)return;
+ const relation=document.getElementById('specialRelation').value;
+ const h=document.getElementById('specialHour').value,m=document.getElementById('specialMinute').value;
+ setSpecialCheck(specialPersonId,relation,h,m);
+ closeSpecialModal();
+}
+function voiceInput(){
+ const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+ document.getElementById('voiceModal').style.display='flex';
+ const msg=document.getElementById('voiceMsg'),res=document.getElementById('voiceResults');res.innerHTML='';
+ if(!SR){msg.textContent='이 브라우저는 음성인식을 지원하지 않습니다. Chrome 또는 Edge에서 사용하세요.';return}
+ msg.textContent='🎙️ 듣고 있습니다. 이름을 말씀하세요.';
+ const rec=new SR();rec.lang='ko-KR';rec.interimResults=false;rec.continuous=false;rec.maxAlternatives=3;
+ rec.onresult=e=>{
+   const spoken=e.results[0][0].transcript.trim();query=spoken;document.getElementById('search').value=spoken;
+   const exact=state.people.filter(p=>nameNorm(p.name)===nameNorm(spoken));
+   const matches=exact.length?exact:state.people.filter(p=>nameNorm(spoken).includes(nameNorm(p.name))||nameNorm(p.name).includes(nameNorm(spoken)));
+   msg.textContent='인식: '+spoken;
+   if(matches.length===1){toggle(matches[0].id);res.innerHTML=`<div class="ok">✓ ${esc(matches[0].name)} · ${esc(birth6(matches[0].birth))} 체크 완료</div>`;}
+   else if(matches.length){res.innerHTML='<div class="warn">동명이인 또는 유사한 이름입니다. 생년월일을 확인하세요.</div>'+matches.map(p=>`<div class="result" onclick="toggle('${String(p.id).replace(/'/g,"\\'")}');closeVoice()"><b>${esc(p.name)}</b><br><span class="muted">${esc(birth6(p.birth))}${p.phone?' · '+esc(p.phone):''}${p.address?' · '+esc(p.address):''}</span></div>`).join('')}
+   else res.innerHTML='<div class="warn">일치하는 대상자가 없습니다. 검색 결과를 확인하세요.</div>';
+   drawSearch()
+ };
+ rec.onerror=e=>msg.textContent='음성인식 오류: '+(e.error||'다시 시도해주세요.');rec.start()
+}
+function closeVoice(){document.getElementById('voiceModal').style.display='none';render()}
+
+function importExcel(){
+ const f=document.getElementById('excelFile').files[0];if(!f){alert('Excel 파일을 선택하세요.');return}
+ const reader=new FileReader();
+ reader.onload=e=>{
+  try{
+   const wb=XLSX.read(e.target.result,{type:'array',cellDates:true});
+   const ws=wb.Sheets[wb.SheetNames[0]];
+   const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:'',raw:true});
+   let h=rows.findIndex(row=>row.some(v=>['이름','성명','대상자명','대상자'].includes(String(v).trim())));if(h<0)h=5;
+   const heads=rows[h].map(v=>String(v).trim());
+   let ni=heads.findIndex(v=>['이름','성명','대상자명','대상자'].includes(v));if(ni<0)ni=1;
+   let bi=heads.findIndex(v=>v.includes('생년'));if(bi<0)bi=2;
+   let pi=heads.findIndex(v=>v.includes('전화')||v.includes('휴대'));if(pi<0)pi=3;
+   let ai=heads.findIndex(v=>v.includes('주소')||v.includes('거주지')||v.includes('도로명'));if(ai<0)ai=4;
+   const people=[];rows.slice(h+1).forEach(row=>{const name=String(row[ni]??'').trim();if(!name)return;people.push({id:crypto.randomUUID(),name,birth:birthNorm(row[bi]),phone:String(row[pi]??'').trim(),address:String(row[ai]??'').trim()})});
+   if(!people.length){alert('이름 열을 찾지 못했거나 명단이 없습니다.');return}
+   state.people=people;
+   const r=activeRecordId?state.records.find(x=>x.id===activeRecordId):null;
+   if(r) r.people=people.map(p=>({...p}));
+   save();query='';deleteMode=false;deleteSelected=new Set();tab='check';render();toast(people.length+'명 명단을 불러왔습니다.')
+  }catch(err){alert('Excel 읽기 오류: '+err.message)}
+ };reader.readAsArrayBuffer(f)
+}
+
+let routeSelection=[];
+let routeCoords=null;
+let routeDistances={};
+let routeMode='near';
+const GEOCODE_CACHE_KEY='meeting_checkbook_geocode_v1';
+function loadGeocodeCache(){if(security.enabled)return {};try{return JSON.parse(localStorage.getItem(GEOCODE_CACHE_KEY)||'{}')}catch(e){return {}}}
+function saveGeocodeCache(c){if(security.enabled)return;localStorage.setItem(GEOCODE_CACHE_KEY,JSON.stringify(c))}
+function sleep(ms){return new Promise(r=>setTimeout(r,ms))}
+function haversineKm(a,b){
+ const R=6371,rad=Math.PI/180;
+ const dLat=(b.lat-a.lat)*rad,dLon=(b.lon-a.lon)*rad;
+ const x=Math.sin(dLat/2)**2+Math.cos(a.lat*rad)*Math.cos(b.lat*rad)*Math.sin(dLon/2)**2;
+ return R*2*Math.atan2(Math.sqrt(x),Math.sqrt(1-x));
+}
+async function geocodeAddress(address){
+ const cache=loadGeocodeCache();
+ const key=String(address||'').trim();
+ if(!key)return null;
+ if(cache[key] && Number.isFinite(cache[key].lat) && Number.isFinite(cache[key].lon))return cache[key];
+ const url='https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&countrycodes=kr&accept-language=ko&q='+encodeURIComponent(key);
+ const res=await fetch(url,{headers:{'Accept':'application/json'}});
+ if(!res.ok)throw new Error('주소 검색 서버 응답 오류 ('+res.status+')');
+ const data=await res.json();
+ if(!Array.isArray(data)||!data.length)return null;
+ const coord={lat:Number(data[0].lat),lon:Number(data[0].lon),display_name:data[0].display_name||''};
+ if(!Number.isFinite(coord.lat)||!Number.isFinite(coord.lon))return null;
+ cache[key]=coord;saveGeocodeCache(cache);
+ return coord;
+}
+function openNaverCarRouteById(id){
+ const p=state.people.find(x=>String(x.id)===String(id));
+ if(!p||!String(p.address||'').trim()){alert('다음 방문자의 주소가 없습니다. 주소를 입력한 뒤 다시 시도하세요.');return}
+ const appName=encodeURIComponent('https://meeting-checkbook.vercel.app/');
+ (async()=>{
+  try{
+   const coord=await geocodeAddress(p.address);
+   if(!coord){alert(p.name+'님의 주소를 지도 좌표로 찾지 못했습니다.\n주소: '+p.address);return}
+   const params='dlat='+encodeURIComponent(coord.lat)+'&dlng='+encodeURIComponent(coord.lon)+'&dname='+encodeURIComponent('방문지')+'&appname='+appName;
+   const nmap='nmap://route/car?'+params;
+   const intent='intent://route/car?'+params+'#Intent;scheme=nmap;action=android.intent.action.VIEW;category=android.intent.category.BROWSABLE;package=com.nhn.android.nmap;end';
+   const ua=navigator.userAgent;
+   if(/Android/i.test(ua)) location.href=intent;
+   else if(/iPhone|iPad|iPod/i.test(ua)){
+    let appOpened=false;
+    const markOpened=()=>{appOpened=true};
+    document.addEventListener('visibilitychange',markOpened,{once:true});
+    window.addEventListener('pagehide',markOpened,{once:true});
+    location.href=nmap;
+    // iOS에서 네이버지도 앱 실행에 시간이 걸릴 수 있어 너무 이른 App Store 전환을 방지
+    setTimeout(()=>{
+      if(!appOpened && document.visibilityState!=='hidden'){
+        location.href='https://apps.apple.com/kr/app/id311867728';
+      }
+    },5000);
+   }else window.open('https://map.naver.com/p/search/'+encodeURIComponent(p.address),'_blank');
+  }catch(err){alert('네이버지도 연결 준비 중 오류가 발생했습니다.\n\n'+err.message)}
+ })();
+}
+function setRouteMode(mode){
+ routeMode=mode||'near';
+ const loc=document.getElementById('routeLocation');
+ const help=document.getElementById('routeModeHelp');
+ const locBtn=document.getElementById('routeLocationBtn');
+ if(routeMode==='selected'){
+  loc.textContent='☑️ 선택한 순서로 방문순서를 만듭니다.';
+  help.innerHTML='<b>선택한 순서</b>는 대상자를 체크한 순서 그대로 사용합니다. 현재 위치 확인과 거리 계산이 필요하지 않습니다.';
+  if(locBtn)locBtn.style.display='none';
+ }else{
+  loc.textContent=routeCoords?`📍 현재 위치 확인됨 · ${routeCoords.lat.toFixed(5)}, ${routeCoords.lon.toFixed(5)}`:'현재 위치를 확인해 주세요.';
+  help.innerHTML='<b>가까운 순서</b> 또는 <b>먼 순서</b>는 현재 위치와 대상자 주소의 직선거리를 계산합니다. 실제 도로 경로는 다음 단계에서 네이버지도로 연결합니다.';
+  if(locBtn)locBtn.style.display='block';
+ }
+}
+function renderRoutePeopleList(){
+ const box=document.getElementById('routePeople');
+ if(!box)return;
+ const selected=new Set(routeSelection.map(String));
+ const selectedPeople=routeSelection.map(id=>state.people.find(p=>String(p.id)===String(id))).filter(Boolean);
+ const unselectedPeople=state.people.filter(p=>!selected.has(String(p.id)));
+ const people=[...selectedPeople,...unselectedPeople];
+ box.innerHTML=people.map(p=>{
+  const id=String(p.id);
+  const idx=routeSelection.indexOf(id);
+  const order=idx>=0?String(idx+1):'–';
+  return `<label class="route-person"><input type="checkbox" data-route-id="${esc(id)}" ${idx>=0?'checked':''} onchange="toggleRoutePerson('${id.replace(/'/g,"\\'")}',this.checked)"><span class="route-order" id="routeOrder_${esc(id)}">${order}</span><span><b>${esc(p.name)}</b><span class="route-address">${birth6(p.birth)}${p.address?' · '+esc(p.address):' · 주소 없음'}</span></span></label>`;
+ }).join('');
+}
+function showRouteSuccessToast(){toast('✓ 순서대로 정렬되었습니다.');}
+function openRoute(){
+ if(!state.people.length){alert('동선을 만들 대상자가 없습니다. 먼저 명단을 추가하세요.');return}
+ routeSelection=[];
+ routeCoords=null;
+ routeDistances={};
+ routeMode='near';
+ const closeBtn=document.getElementById('routeCloseBtn');if(closeBtn)closeBtn.textContent='취소';
+ const savedPanel=document.getElementById('routeResultPanel');
+ if(savedPanel)savedPanel.classList.remove('show');
+ renderRoutePeopleList();
+ const radio=document.querySelector('input[name="routeMode"][value="near"]');if(radio)radio.checked=true;
+ document.getElementById('routeLocation').textContent='현재 위치를 확인해 주세요.';
+ document.getElementById('routeLocationBtn').style.display='block';
+ document.getElementById('routeModeHelp').innerHTML='<b>가까운 순서</b> 또는 <b>먼 순서</b>는 현재 위치와 대상자 주소의 직선거리를 계산합니다. 실제 도로 경로는 다음 단계에서 네이버지도로 연결합니다.';
+ document.getElementById('routeModal').style.display='flex';document.body.classList.add('route-open');
+}
+function closeRoute(){document.getElementById('routeModal').style.display='none';document.body.classList.remove('route-open');render();}
+function toggleRoutePerson(id,checked){
+ id=String(id);
+ if(checked){if(!routeSelection.includes(id))routeSelection.push(id)}else{routeSelection=routeSelection.filter(x=>x!==id)}
+ renderRoutePeopleList();
+ drawRouteResult();
+}
+function drawRouteOrder(){renderRoutePeopleList();}
+function moveRoute(id,dir){
+ const i=routeSelection.indexOf(String(id));if(i<0)return;
+ const j=i+dir;if(j<0||j>=routeSelection.length)return;
+ [routeSelection[i],routeSelection[j]]=[routeSelection[j],routeSelection[i]];
+ saveCurrentRoute();
+ renderRoutePeopleList();
+ drawRouteResult();
+}
+function getRoutePeople(){return routeSelection.map(id=>state.people.find(p=>String(p.id)===String(id))).filter(Boolean)}
+function routeModeLabel(mode){
+ if(mode==='far')return '📍 현재 위치 기준 먼 순서 · 직선거리';
+ if(mode==='selected')return '☑️ 선택한 순서';
+ return '📍 현재 위치 기준 가까운 순서 · 직선거리';
+}
+function saveCurrentRoute(){
+ let r=activeRecordId?state.records.find(x=>x.id===activeRecordId):null;
+ if(!r) r=getRecord(true);
+ if(!r)return;
+ r.route={ids:routeSelection.map(String),distances:{...routeDistances},mode:routeMode,coords:routeCoords?{lat:routeCoords.lat,lon:routeCoords.lon}:null,updatedAt:new Date().toISOString()};
+ r.people=state.people.map(p=>({...p}));
+ save();
+}
+function routeCheckInfo(id){
+ const r=getRecord(false);
+ return parseCheck(r?.checks?.[String(id)]);
+}
+function routeIsChecked(id){
+ const r=getRecord(false);
+ return !!(r?.checks?.[String(id)]);
+}
+function goCheckFromRoute(){
+ document.getElementById('routeModal').style.display='none';document.body.classList.remove('route-open');
+ tab='check';
+ render();
+}
+function renderSavedRouteCard(){
+ const r=activeRecordId?state.records.find(x=>x.id===activeRecordId):null;
+ const rt=r&&r.route;
+ if(!rt||!Array.isArray(rt.ids)||!rt.ids.length)return '';
+ const people=rt.ids.map(id=>state.people.find(p=>String(p.id)===String(id))).filter(Boolean);
+ if(!people.length)return '';
+ const next=people.findIndex(p=>!routeIsChecked(p.id));
+ return `<div class="card" style="background:#f8faff;border:1px solid #dfe7f5;margin-bottom:12px"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><div><b>🚗 현재 동선</b><div class="muted" style="margin-top:4px">${esc(routeModeLabel(rt.mode))}</div></div><button class="small" onclick="openSavedRoute()">동선 보기</button></div><div style="margin-top:10px">${people.map((p,i)=>{const done=routeIsChecked(p.id);const isNext=!done&&i===next;return `<div style="display:flex;gap:8px;align-items:center;padding:7px 0;border-top:1px solid #e8edf5"><span class="route-number" style="width:26px;height:26px;font-size:12px">${i+1}</span><div style="min-width:0;flex:1"><b class="${done?'route-done':''}">${done?'✓ ':''}${esc(p.name)}${isNext?' · 다음 방문':''}</b><span class="route-address">${rt.distances&&rt.distances[String(p.id)]!=null?('약 '+Number(rt.distances[String(p.id)]).toFixed(2)+' km · '):''}${esc(p.address||'주소 없음')}</span></div>${isNext?`<button class="small primary" onclick="openNaverCarRouteById('${String(p.id).replace(/'/g,"\'")}')">🧭 길찾기</button>`:''}</div>`}).join('')}</div></div>`;
+}
+function openSavedRoute(){
+ const r=activeRecordId?state.records.find(x=>x.id===activeRecordId):null;
+ const rt=r&&r.route;
+ if(!rt||!rt.ids||!rt.ids.length){alert('저장된 동선이 없습니다.');return}
+ routeSelection=rt.ids.map(String).filter(id=>state.people.some(p=>String(p.id)===id));
+ routeDistances={...(rt.distances||{})};
+ routeMode=rt.mode||'near';
+ routeCoords=rt.coords||null;
+ const radios=document.querySelectorAll('input[name="routeMode"]');
+ radios.forEach(el=>el.checked=(el.value===routeMode));
+ setRouteMode(routeMode);
+ renderRoutePeopleList();
+ document.getElementById('routeResultLocation').textContent=routeModeLabel(routeMode);
+ drawRouteResult();
+ document.getElementById('routeResultPanel').classList.add('show');
+ document.getElementById('routeModal').style.display='flex';document.body.classList.add('route-open');
+}
+function requestRouteLocation(){
+ const el=document.getElementById('routeLocation');
+ if(!navigator.geolocation){el.textContent='이 브라우저에서 위치 기능을 지원하지 않습니다.';return}
+ if(!window.isSecureContext){el.textContent='현재 위치 기능은 HTTPS 보안 연결에서만 사용할 수 있습니다. 앱 주소가 https://로 시작하는지 확인해 주세요.';return}
+ el.textContent='📍 현재 위치를 확인하고 있습니다...';
+ navigator.geolocation.getCurrentPosition(pos=>{
+  routeCoords={lat:pos.coords.latitude,lon:pos.coords.longitude};
+  el.textContent=`📍 현재 위치 확인됨 · ${routeCoords.lat.toFixed(5)}, ${routeCoords.lon.toFixed(5)}`;
+ },err=>{
+  if(err.code===1) el.textContent='위치 권한이 거부되었습니다. 브라우저 사이트 설정에서 위치 권한을 허용한 뒤 다시 시도해 주세요.';
+  else if(err.code===2) el.textContent='현재 위치를 확인할 수 없습니다. 기기의 위치 서비스(GPS)가 켜져 있는지 확인해 주세요.';
+  else if(err.code===3) el.textContent='위치 확인 시간이 초과되었습니다. 실외나 창가에서 다시 시도해 주세요.';
+  else el.textContent='현재 위치를 확인하지 못했습니다. 브라우저와 기기의 위치 설정을 확인해 주세요.';
+ }, {enableHighAccuracy:true,timeout:15000,maximumAge:60000});
+}
+async function buildRouteList(){
+ if(!routeSelection.length){alert('방문할 대상자를 한 명 이상 선택하세요.');return}
+ if(routeMode==='selected'){
+  routeDistances={};
+  saveCurrentRoute();
+  document.getElementById('routeResultLocation').textContent='☑️ 선택한 순서 그대로 표시했습니다.';
+  drawRouteResult();
+  document.getElementById('routeResultPanel').classList.add('show');
+  const closeBtn=document.getElementById('routeCloseBtn');if(closeBtn)closeBtn.textContent='동선 완료';
+  showRouteSuccessToast();
+  return;
+ }
+ if(!routeCoords){alert('먼저 📍 현재 위치 확인을 눌러 출발 위치를 확인하세요.');return}
+ const people=getRoutePeople();
+ if(!confirm('가까운 순서/먼 순서를 만들려면 선택한 대상자의 주소를 외부 지도 서비스에 보내 위치를 확인해야 합니다.\n\n주소만 전송하며 이름·전화번호·메모는 전송하지 않습니다.\n\n외부 전송 없이 방문순서를 만들려면 ‘선택한 순서’를 이용하세요.\n\n계속할까요?')) return;
+ const noAddress=people.filter(p=>!String(p.address||'').trim());
+ if(noAddress.length){alert('다음 대상자는 주소가 없어 거리 계산을 할 수 없습니다.\n\n'+noAddress.map(p=>p.name).join(', ')+'\n\n주소를 입력한 뒤 다시 시도하세요.');return}
+ const btn=document.querySelector('#routeModal button.primary');
+ if(btn){btn.disabled=true;btn.textContent='주소 위치 확인 중…'}
+ document.getElementById('routeLocation').textContent='📍 현재 위치 확인됨 · 선택 대상자의 위치를 확인하고 있습니다...';
+ try{
+  const rows=[];
+  for(let i=0;i<people.length;i++){
+   const p=people[i];
+   const coord=await geocodeAddress(p.address);
+   if(!coord)throw new Error(p.name+'님의 주소를 지도 좌표로 찾지 못했습니다.\n주소: '+p.address);
+   const km=haversineKm(routeCoords,coord);
+   routeDistances[String(p.id)]=km;
+   rows.push({p,km});
+   if(i<people.length-1)await sleep(1100);
+  }
+  rows.sort((a,b)=>routeMode==='near'?(a.km-b.km):(b.km-a.km));
+  routeSelection=rows.map(x=>String(x.p.id));
+  saveCurrentRoute();
+  renderRoutePeopleList();
+  document.getElementById('routeResultLocation').textContent=routeModeLabel(routeMode);
+  drawRouteResult();
+  document.getElementById('routeResultPanel').classList.add('show');
+  const closeBtn=document.getElementById('routeCloseBtn');if(closeBtn)closeBtn.textContent='동선 완료';
+  showRouteSuccessToast();
+ }catch(err){
+  alert('동선 계산을 완료하지 못했습니다.\n\n'+err.message+'\n\n주소가 정확한지 확인한 뒤 다시 시도하세요.');
+ }finally{
+  if(btn){btn.disabled=false;btn.textContent='방문순서 만들기'}
+  document.getElementById('routeLocation').textContent=routeCoords?`📍 현재 위치 확인됨 · ${routeCoords.lat.toFixed(5)}, ${routeCoords.lon.toFixed(5)}`:'현재 위치를 확인해 주세요.';
+ }
+}
+function drawRouteResult(){
+ const box=document.getElementById('routeResult');if(!box)return;
+ const people=getRoutePeople();
+ if(!people.length){box.innerHTML='<div class="muted">선택한 대상자가 없습니다.</div>';return}
+ const next=people.findIndex(p=>!routeIsChecked(p.id));
+ box.innerHTML=people.map((p,i)=>{const done=routeIsChecked(p.id);const isNext=!done&&i===next;return `<div class="route-result"><div class="route-number">${i+1}</div><div style="min-width:0;flex:1"><b class="${done?'route-done':''}">${done?'✓ ':''}${esc(p.name)}${isNext?' · 다음 방문':''}</b><span class="route-address">${routeDistances[String(p.id)]!=null?('약 '+routeDistances[String(p.id)].toFixed(2)+' km · '):''}${esc(p.phone||'')}${p.address?' · '+esc(p.address):'주소 없음'}</span></div>${isNext?`<button class="small primary" onclick="openNaverCarRouteById('${String(p.id).replace(/'/g,"\'")}')">🧭 길찾기</button>`:''}<div class="route-updown"><button onclick="moveRoute('${String(p.id).replace(/'/g,"\'")}',-1)" aria-label="위로">↑</button><button onclick="moveRoute('${String(p.id).replace(/'/g,"\'")}',1)" aria-label="아래로">↓</button></div></div>`}).join('');
+}
+document.getElementById('routeLocationBtn').onclick=requestRouteLocation;
+
+function renderRecords(){
+ main.innerHTML=`<div class="records-screen"><div class="records-topbar"><div class="records-heading">목록</div></div><div class="records-list" id="records"></div></div>`;
+ const box=document.getElementById('records');
+ if(!state.records.length){box.innerHTML='<div class="card"><div class="muted">저장된 기록이 없습니다.</div></div>';return}
+ state.records.slice().reverse().forEach(r=>{
+  const n=Object.values(r.checks||{}).filter(Boolean).length;
+  const total=Array.isArray(r.people)&&r.people.length ? r.people.length : state.people.length;
+  const d=document.createElement('div');d.className='record-card';
+  d.innerHTML=`<div class="record-title">${esc(r.title)}</div><div class="record-meta">${esc(r.date)} · ${n}명 / ${total}명 체크</div><div class="record-actions"><button class="primary">열기</button><button>📥 Excel</button><button class="danger">🗑 삭제</button></div>`;
+  const b=d.querySelectorAll('button');
+  b[0].onclick=()=>openRecord(r); b[1].onclick=()=>exportExcel(r); b[2].onclick=()=>{
+   if(!confirm('이 기록을 휴지통으로 이동할까요?\n기록은 휴지통에서 복원할 수 있습니다.'))return;
+   const idx=state.records.findIndex(x=>x.id===r.id); if(idx<0)return;
+   const moved=JSON.parse(JSON.stringify(state.records[idx])); moved.deletedAt=new Date().toISOString();
+   state.trash.push(moved); state.records.splice(idx,1); if(activeRecordId===r.id)activeRecordId=null; save(); render(); toast('기록을 휴지통으로 이동했습니다.');
+  };
+  box.appendChild(d);
+ });
+}
+function openRecord(r){
+ const target=state.records.find(x=>x.id===r.id);
+ if(!target){alert('이 기록을 찾을 수 없습니다.');return}
+ activeRecordId=target.id;
+ state.title=target.title||'기타';
+ state.topicType=target.topicType||inferTopicType(state.title);
+ state.date=target.date||new Date().toISOString().slice(0,10);
+ if(Array.isArray(target.people) && target.people.length){
+   state.people=target.people.map(p=>({...p}));
+ }else if(state.people.length){
+   target.people=state.people.map(p=>({...p}));
+ }else{
+   // 명단이 전혀 없는 구버전 기록은 기록을 열 수는 있지만
+   // 현재 화면에서 복원할 명단이 없으므로 안내한다.
+   target.people=[];
+ }
+ query='';
+ deleteMode=false;
+ deleteSelected=new Set();
+ save();
+ const dp=document.getElementById('datePicker');if(dp)dp.value=state.date;
+ tab='check';
+ render();
+ toast('기록을 열었습니다. 수정 후 체크하면 저장됩니다.');
+}
+async function exportExcel(r){
+ const rows=[['연번','이름','생년월일','전화번호','주소',r.title+' ('+r.date+')']];
+ const people=r.people||state.people;
+ people.forEach((p,i)=>{
+  const cv=r.checks[p.id];
+  const info=parseCheck(cv);
+  let value='';
+  if(cv===true)value='O';
+  else if(typeof cv==='string')value=cv;
+  else if(cv && typeof cv==='object')value=info.relation+(info.time?' · '+info.time:'');
+  rows.push([i+1,p.name,p.birth||'',p.phone||'',p.address||'',value]);
+});
+ const ws=XLSX.utils.aoa_to_sheet(rows),wb=XLSX.utils.book_new();
+ XLSX.utils.book_append_sheet(wb,ws,'기록');
+ const filename=(r.title+'_'+r.date).replace(/[\\/:*?"<>|]/g,'_')+'.xlsx';
+ const data=XLSX.write(wb,{bookType:'xlsx',type:'array'});
+ const blob=new Blob([data],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+ const file=new File([blob],filename,{type:blob.type});
+
+ // 모바일에서는 생성한 Excel 파일을 운영체제 공유창으로 전달
+ if(navigator.share && (!navigator.canShare || navigator.canShare({files:[file]}))){
+   try{
+     await navigator.share({title:filename,text:'복지 체크북 기록',files:[file]});
+     return;
+   }catch(err){
+     if(err && err.name==='AbortError')return;
+   }
+ }
+ // 공유 기능을 지원하지 않는 브라우저는 다운로드로 대체
+ const url=URL.createObjectURL(blob);
+ const a=document.createElement('a');a.href=url;a.download=filename;document.body.appendChild(a);a.click();a.remove();
+ setTimeout(()=>URL.revokeObjectURL(url),1000);
+}
+async function shareApp(){
+ const appUrl='https://meeting-checkbook.vercel.app/';
+ const shareData={title:'방문 체크북',text:'사회복지 업무용 방문·상담 기록 앱',url:appUrl};
+ try{
+   if(navigator.share){
+     await navigator.share(shareData);
+     return;
+   }
+ }catch(e){
+   if(e && e.name==='AbortError') return;
+ }
+ try{
+   if(navigator.clipboard && window.isSecureContext){
+     await navigator.clipboard.writeText(appUrl);
+     toast('✓ 앱 주소가 복사되었습니다.');
+     return;
+   }
+ }catch(e){}
+ const ta=document.createElement('textarea');
+ ta.value=appUrl;ta.style.position='fixed';ta.style.left='-9999px';
+ document.body.appendChild(ta);ta.select();
+ try{document.execCommand('copy');toast('✓ 앱 주소가 복사되었습니다.');}
+ catch(e){prompt('앱 주소를 복사하세요.',appUrl);}
+ ta.remove();
+}
+function manageIcon(type){
+ const c='viewBox="0 0 48 48" aria-hidden="true"';
+ const i={
+ lock:`<svg ${c}><rect x="12" y="21" width="24" height="20" rx="3"/><path d="M17 21v-6a7 7 0 0 1 14 0v6"/><circle cx="24" cy="31" r="1.5" fill="currentColor" stroke="none"/><path d="M24 32.5v4"/></svg>`,
+ share:`<svg ${c}><circle cx="14" cy="24" r="4"/><circle cx="34" cy="13" r="4"/><circle cx="34" cy="35" r="4"/><path d="M17.5 22l12.5-7M17.5 26l12.5 7"/></svg>`,
+ book:`<svg ${c}><path d="M10 9c5-2 9-1 14 2v28c-5-3-9-4-14-2z"/><path d="M38 9c-5-2-9-1-14 2v28c5-3 9-4 14-2z"/></svg>`,
+ data:`<svg ${c}><ellipse cx="24" cy="12" rx="11" ry="5"/><path d="M13 12v16c0 3 5 5 11 5s11-2 11-5V12M13 20c0 3 5 5 11 5s11-2 11-5"/><circle cx="35" cy="36" r="4"/><path d="M35 34v2l1.5 1"/></svg>`,
+ trash:`<svg ${c}><path d="M12 14h24M19 14V9h10v5"/><rect x="15" y="14" width="18" height="27" rx="2"/><path d="M21 20v14M27 20v14"/></svg>`,
+ reset:`<svg ${c}><path d="M12 21a13 13 0 1 1 3 12"/><path d="M12 21v-8h8"/></svg>`}; return i[type]||'';
+}
+function openManageDetail(type){
+ const m=document.getElementById('manageDetailModal'); if(!m)return; const t=document.getElementById('manageDetailTitle'),b=document.getElementById('manageDetailBody'); let h='';
+ if(type==='lock'){t.textContent='앱 잠금';h=`<p class="muted">${security.enabled?'현재 숫자 4자리 비밀번호 보호가 사용 중입니다.':'현재 비밀번호 없이 사용 중입니다.'}</p>${security.enabled?`<div class="actions" style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><button onclick="changePassword();closeManageDetail()">비밀번호 변경</button><button onclick="lockApp();closeManageDetail()">🔒 지금 잠그기</button></div><button class="danger" style="width:100%;margin-top:8px" onclick="disablePassword();closeManageDetail()">🔓 비밀번호 사용 안 함</button>`:`<button class="primary" style="width:100%" onclick="startPasswordSetup();closeManageDetail()">🔒 비밀번호 사용</button>`}`}
+ else if(type==='share'){t.textContent='앱 공유';h=`<p class="muted">대상자 자료는 공유하지 않고 방문 체크북 앱 주소만 공유합니다.</p><button class="primary" style="width:100%" onclick="shareApp();closeManageDetail()">📤 앱 주소 공유</button>`}
+ else if(type==='help'){t.textContent='사용 안내';h=`<div class="help-body"><b>① 새 체크북 만들기</b><br>홈의 새 방문기록에서 업무 주제를 선택하고 명단을 불러오거나 직접 추가합니다.<br><br><b>② 대상자 체크</b><br>체크 메뉴에서 이름을 검색하거나 음성으로 찾아 체크합니다.<br><br><b>③ 동선 만들기</b><br>방문할 사람을 선택하고 방문 순서를 정합니다.<br><br><b>④ 개인정보 보호</b><br>명단과 기록은 기본적으로 이 기기의 브라우저 저장공간에 보관됩니다.</div>`}
+ else if(type==='data'){t.textContent='데이터 관리';h=`<p class="muted">명단과 기록은 원칙적으로 이 기기의 브라우저 저장공간에 보관됩니다.</p><div class="actions" style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><button onclick="document.getElementById('excelFile')?.click();closeManageDetail()">📥 명단 가져오기</button><button onclick="exportCurrentRecord();closeManageDetail()">📤 기록 내보내기</button></div><input id="excelFile" type="file" accept=".xlsm,.xlsx,.xls" style="display:none" onchange="importExcel()">`}
+ else if(type==='trash'){const tr=Array.isArray(state.trash)?state.trash:[];const list=!tr.length?'<div class="muted">휴지통이 비어 있습니다.</div>':tr.slice().reverse().map(r=>`<div class="record"><b>${esc(r.title)}</b><div class="muted">${esc(r.date)}</div><div class="actions" style="margin-top:8px"><button class="small" onclick="restoreTrash('${String(r.id).replace(/'/g,"\\'")}');closeManageDetail()">↩ 복원</button><button class="small danger" onclick="permanentDeleteTrash('${String(r.id).replace(/'/g,"\\'")}');closeManageDetail()">영구 삭제</button></div></div>`).join('');t.textContent='휴지통';h=`<p class="muted">삭제된 기록은 휴지통에 보관됩니다.</p>${list}${tr.length?'<button style="width:100%;margin-top:10px" onclick="emptyTrash();closeManageDetail()">휴지통 비우기</button>':''}`}
+ else if(type==='reset'){t.textContent='초기화';h=`<p class="muted">모든 명단과 기록, 휴지통을 포함한 앱 데이터를 삭제합니다.</p><div class="warn">삭제한 데이터는 되돌릴 수 없습니다.</div><button class="danger" style="width:100%" onclick="resetAll();closeManageDetail()">모든 데이터 초기화</button>`}
+ b.innerHTML=h;m.classList.add('show');
+}
+function closeManageDetail(){document.getElementById('manageDetailModal')?.classList.remove('show')}
+function renderManage(){main.innerHTML=`<div class="manage-screen"><div class="manage-topbar"><button class="manage-back" onclick="navigateTab('home')" aria-label="뒤로">‹</button><div class="manage-heading">설정</div></div><div class="manage-list">
+<button class="manage-item" onclick="openManageDetail('lock')"><span class="manage-item-icon orange">${manageIcon('lock')}</span><span class="manage-item-copy"><strong>앱 잠금</strong><span>${security.enabled?'비밀번호 설정 · 현재 사용 중':'비밀번호 설정'}</span></span><span class="manage-arrow">›</span></button>
+<button class="manage-item" onclick="openManageDetail('share')"><span class="manage-item-icon blue">${manageIcon('share')}</span><span class="manage-item-copy"><strong>앱 공유</strong><span>앱 주소만 공유합니다</span></span><span class="manage-arrow">›</span></button>
+<button class="manage-item" onclick="openManageDetail('help')"><span class="manage-item-icon blue">${manageIcon('book')}</span><span class="manage-item-copy"><strong>사용 안내</strong><span>앱 사용 방법 보기</span></span><span class="manage-arrow">›</span></button>
+<button class="manage-item" onclick="openManageDetail('data')"><span class="manage-item-icon gray">${manageIcon('data')}</span><span class="manage-item-copy"><strong>데이터 관리</strong><span>내보내기 · 가져오기</span></span><span class="manage-arrow">›</span></button>
+<button class="manage-item" onclick="openManageDetail('trash')"><span class="manage-item-icon red">${manageIcon('trash')}</span><span class="manage-item-copy"><strong>휴지통</strong><span>삭제된 항목 복원</span></span><span class="manage-arrow">›</span></button>
+<button class="manage-item" onclick="openManageDetail('reset')"><span class="manage-item-icon red">${manageIcon('reset')}</span><span class="manage-item-copy"><strong>초기화</strong><span>모든 데이터 삭제</span></span><span class="manage-arrow">›</span></button></div></div>`}
+
+function exportCurrentRecord(){const r=getRecord(false);if(!r||!(r.people||[]).length){alert('내보낼 기록이 없습니다.');return}exportExcel(r)}
+function restoreTrash(id){
+ const idx=state.trash.findIndex(x=>String(x.id)===String(id));
+ if(idx<0){alert('휴지통에서 기록을 찾을 수 없습니다.');return}
+ const r=JSON.parse(JSON.stringify(state.trash[idx]));
+ delete r.deletedAt;
+ if(state.records.some(x=>String(x.id)===String(r.id))){r.id=crypto.randomUUID()}
+ state.records.push(r);
+ state.trash.splice(idx,1);
+ save();render();toast('기록을 복원했습니다.');
+}
+function permanentDeleteTrash(id){
+ const idx=state.trash.findIndex(x=>String(x.id)===String(id));
+ if(idx<0)return;
+ if(!confirm('이 기록을 영구적으로 삭제할까요?\n영구 삭제 후에는 복원할 수 없습니다.'))return;
+ state.trash.splice(idx,1);
+ save();render();toast('기록을 영구 삭제했습니다.');
+}
+function emptyTrash(){
+ if(!state.trash.length)return;
+ if(!confirm(`휴지통의 ${state.trash.length}개 기록을 모두 영구 삭제할까요?\n삭제 후에는 복원할 수 없습니다.`))return;
+ state.trash=[];save();render();toast('휴지통을 비웠습니다.');
+}
+function resetAll(){if(confirm('모든 명단과 기록을 삭제할까요?')){localStorage.removeItem(KEY);localStorage.removeItem(LOCK_KEY);localStorage.removeItem(GEOCODE_CACHE_KEY);location.reload()}}
+function toast(t){const e=document.getElementById('toast');e.textContent=t;e.style.display='block';clearTimeout(window.toastTimer);window.toastTimer=setTimeout(()=>e.style.display='none',1500)}
+bootSecurity();
+setTimeout(()=>document.getElementById('splash')?.classList.add('hide'),1300);
+</script>
+</body></html>
