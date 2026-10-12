@@ -645,7 +645,7 @@ function drawPeopleTools(){
    const total=state.people.length, selected=deleteSelected.size;
    box.innerHTML=`<b>명단 삭제</b><p class="muted">삭제할 사람을 여러 명 선택할 수 있습니다. 삭제해도 기존 기록은 남습니다.</p><div class="actions delete-mode-actions" style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><button style="font-size:16px;font-weight:700" onclick="selectAllForDelete()">${selected===total&&total?'☑ 모두 해제':'☐ 모두 선택'}</button><button class="danger" style="font-size:16px;font-weight:700" onclick="deleteSelectedPeople()">선택 ${selected}명 삭제</button></div><button class="delete-mode-cancel" style="width:100%;margin-top:8px;font-size:16px;font-weight:700" onclick="cancelDeleteMode()">취소</button>`;
  }else{
-   box.innerHTML=`<b style="font-size:20px">명단 관리</b><div class="check-manage-actions"><button class="primary" onclick="openAddPerson()">＋ 사람 추가</button><button class="danger" onclick="startDeleteMode()">🗑 여러 명 삭제</button></div><div class="check-excel-wrap"><input id="excelFile" type="file" accept=".xlsm,.xlsx,.xls"><button class="check-excel-btn" onclick="importExcel()">📥 Excel 명단 불러오기</button></div>`;
+   box.innerHTML=`<b style="font-size:20px">명단 관리</b><div class="check-manage-actions"><button class="primary" onclick="openAddPerson()">＋ 사람 추가</button><button class="danger" onclick="startDeleteMode()">🗑 여러 명 삭제</button></div><div class="check-excel-wrap"><input id="checkExcelFile" type="file" accept=".xlsm,.xlsx,.xls"><button class="check-excel-btn" onclick="importExcel('checkExcelFile')">📥 Excel 명단 불러오기</button></div>`;
  }
 }
 function startDeleteMode(){deleteMode=true;deleteSelected=new Set();render();}
@@ -753,8 +753,9 @@ function voiceInput(){
 }
 function closeVoice(){document.getElementById('voiceModal').style.display='none';render()}
 
-function importExcel(){
- const f=document.getElementById('excelFile').files[0];if(!f){alert('Excel 파일을 선택하세요.');return}
+function importExcel(inputId='checkExcelFile'){
+ const input=document.getElementById(inputId);
+ const f=input?.files?.[0];if(!f){alert('Excel 파일을 선택하세요.');return}
  const reader=new FileReader();
  reader.onload=e=>{
   try{
@@ -772,7 +773,7 @@ function importExcel(){
    state.people=people;
    const r=activeRecordId?state.records.find(x=>x.id===activeRecordId):null;
    if(r) r.people=people.map(p=>({...p}));
-   save();query='';deleteMode=false;deleteSelected=new Set();tab='check';render();toast(people.length+'명 명단을 불러왔습니다.')
+   save();query='';deleteMode=false;deleteSelected=new Set();tab='check';render();toast(people.length+'명 명단을 불러왔습니다.');if(input)input.value=''
   }catch(err){alert('Excel 읽기 오류: '+err.message)}
  };reader.readAsArrayBuffer(f)
 }
@@ -1162,7 +1163,7 @@ function openManageDetail(type){
  if(type==='lock'){t.textContent='앱 잠금';h=`<p class="muted">${security.enabled?'현재 숫자 4자리 비밀번호 보호가 사용 중입니다.':'현재 비밀번호 없이 사용 중입니다.'}</p>${security.enabled?`<div class="actions" style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><button onclick="changePassword();closeManageDetail()">비밀번호 변경</button><button onclick="lockApp();closeManageDetail()">🔒 지금 잠그기</button></div><button class="danger" style="width:100%;margin-top:8px" onclick="disablePassword();closeManageDetail()">🔓 비밀번호 사용 안 함</button>`:`<button class="primary" style="width:100%" onclick="startPasswordSetup();closeManageDetail()">🔒 비밀번호 사용</button>`}`}
  else if(type==='share'){t.textContent='앱 공유';h=`<p class="muted">대상자 자료는 공유하지 않고 방문 체크북 앱 주소만 공유합니다.</p><button class="primary" style="width:100%" onclick="shareApp();closeManageDetail()">📤 앱 주소 공유</button>`}
  else if(type==='help'){t.textContent='사용 안내';h=`<div class="help-body"><b>① 새 체크북 만들기</b><br>홈의 새 방문기록에서 업무 주제를 선택하고 명단을 불러오거나 직접 추가합니다.<br><br><b>② 대상자 체크</b><br>체크 메뉴에서 이름을 검색하거나 음성으로 찾아 체크합니다.<br><br><b>③ 동선 만들기</b><br>방문할 사람을 선택하고 방문 순서를 정합니다.<br><br><b>④ 개인정보 보호</b><br>명단과 기록은 기본적으로 이 기기의 브라우저 저장공간에 보관됩니다.</div>`}
- else if(type==='data'){t.textContent='데이터 관리';h=`<p class="muted">명단과 기록은 원칙적으로 이 기기의 브라우저 저장공간에 보관됩니다.</p><div class="actions" style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><button onclick="document.getElementById('excelFile')?.click();closeManageDetail()">📥 명단 가져오기</button><button onclick="exportCurrentRecord();closeManageDetail()">📤 기록 내보내기</button></div><input id="excelFile" type="file" accept=".xlsm,.xlsx,.xls" style="display:none" onchange="importExcel()">`}
+ else if(type==='data'){t.textContent='데이터 관리';h=`<p class="muted">명단과 기록은 원칙적으로 이 기기의 브라우저 저장공간에 보관됩니다.</p><div class="actions" style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><button onclick="document.getElementById('dataExcelFile')?.click();closeManageDetail()">📥 명단 가져오기</button><button onclick="exportCurrentRecord();closeManageDetail()">📤 기록 내보내기</button></div><input id="dataExcelFile" type="file" accept=".xlsm,.xlsx,.xls" style="display:none" onchange="importExcel('dataExcelFile')">`}
  else if(type==='trash'){const tr=Array.isArray(state.trash)?state.trash:[];const list=!tr.length?'<div class="muted">휴지통이 비어 있습니다.</div>':tr.slice().reverse().map(r=>`<div class="record"><b>${esc(r.title)}</b><div class="muted">${esc(r.date)}</div><div class="actions" style="margin-top:8px"><button class="small" onclick="restoreTrash('${String(r.id).replace(/'/g,"\\'")}');closeManageDetail()">↩ 복원</button><button class="small danger" onclick="permanentDeleteTrash('${String(r.id).replace(/'/g,"\\'")}');closeManageDetail()">영구 삭제</button></div></div>`).join('');t.textContent='휴지통';h=`<p class="muted">삭제된 기록은 휴지통에 보관됩니다.</p>${list}${tr.length?'<button style="width:100%;margin-top:10px" onclick="emptyTrash();closeManageDetail()">휴지통 비우기</button>':''}`}
  else if(type==='reset'){t.textContent='초기화';h=`<p class="muted">모든 명단과 기록, 휴지통을 포함한 앱 데이터를 삭제합니다.</p><div class="warn">삭제한 데이터는 되돌릴 수 없습니다.</div><button class="danger" style="width:100%" onclick="resetAll();closeManageDetail()">모든 데이터 초기화</button>`}
  b.innerHTML=h;m.classList.add('show');
