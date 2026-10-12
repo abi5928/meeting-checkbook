@@ -88,9 +88,7 @@ nav button{flex:1;background:none;font-size:12px;padding:7px 2px;color:#64748b;l
 .check-screen{min-height:calc(100vh - 72px);padding:8px 16px 100px;max-width:560px;margin:0 auto}
 .check-topbar{height:48px;display:flex;align-items:center;justify-content:center;position:relative;margin-bottom:10px}
 .check-back{position:absolute;left:0;width:44px;height:44px;background:transparent;padding:0;border-radius:50%;font-size:31px;font-weight:300;color:#172033;line-height:1}
-.check-heading{font-size:20px;font-weight:900;letter-spacing:-.8px}
-.check-top-actions{position:absolute;right:0;display:flex;gap:2px}
-.check-top-actions button{background:transparent;padding:8px;font-size:22px;color:#172033}
+.check-heading{font-size:20px;font-weight:900;letter-spacing:-.8px;background:transparent;border:0;padding:6px 10px;color:#172033;cursor:pointer}
 .check-date-card{background:#fff;border-radius:18px;padding:13px 14px;margin-bottom:10px;box-shadow:0 3px 14px rgba(23,32,51,.055)}
 .check-date-row{display:flex;align-items:center;justify-content:space-between;gap:10px}
 .check-date-text{font-size:15px;font-weight:850;color:#172033}
@@ -572,6 +570,21 @@ function renderHome(){
 }
 function openHomeDate(){openCheckDate()}
 
+function editTopicName(){
+ const oldTitle=String(state.title||'출석체크');
+ const next=prompt('주제명을 입력하세요.',oldTitle);
+ if(next===null)return;
+ const title=next.trim();
+ if(!title){alert('주제명을 입력하세요.');return;}
+ const current=activeRecordId?state.records.find(x=>x.id===activeRecordId):state.records.find(x=>x.date===state.date&&x.title===oldTitle);
+ state.title=title;
+ state.topicType='기타';
+ if(current){current.title=title;current.topicType='기타';}
+ save();
+ render();
+ toast('주제명이 변경되었습니다.');
+}
+
 function renderCheck(){
  query='';
  const r=getRecord(false),s=checkedSet(),list=state.people.filter(p=>!query||nameNorm(p.name).includes(nameNorm(query))||birth6(p.birth).includes(query.replace(/-/g,'')));
@@ -579,8 +592,7 @@ function renderCheck(){
  main.innerHTML=`<div class="check-screen">
    <div class="check-topbar">
      <button class="check-back" onclick="navigateTab('home')" aria-label="뒤로">‹</button>
-     <div class="check-heading">방문 체크</div>
-     <div class="check-top-actions"><button aria-label="검색">⌕</button><button aria-label="더보기">⋮</button></div>
+     <button class="check-heading" type="button" onclick="editTopicName()" aria-label="주제명 수정">방문 체크</button>
    </div>
    <section class="check-date-card">
      <div class="check-date-row"><div class="check-date-text">📅 ${esc(formatCheckDate(state.date))}</div><span class="check-date-direct">변경<input class="date-native-direct" type="date" value="${esc(state.date)}" aria-label="방문 날짜 변경" onchange="applyGlobalDate(this.value)"></span></div>
