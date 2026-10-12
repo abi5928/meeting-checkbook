@@ -631,9 +631,9 @@ function drawPeopleTools(){
  const box=document.getElementById('peopleTools');if(!box)return;
  if(deleteMode){
    const total=state.people.length, selected=deleteSelected.size;
-   box.innerHTML=`<b>명단 삭제</b><p class="muted">삭제할 사람을 여러 명 선택할 수 있습니다. 삭제해도 기존 기록은 남습니다.</p><div class="actions" style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><button onclick="selectAllForDelete()">${selected===total&&total?'☑ 모두 해제':'☐ 모두 선택'}</button><button class="danger" onclick="deleteSelectedPeople()">선택 ${selected}명 삭제</button></div><button style="width:100%;margin-top:8px" onclick="cancelDeleteMode()">취소</button>`;
+   box.innerHTML=`<b>명단 삭제</b><p class="muted">삭제할 사람을 여러 명 선택할 수 있습니다. 삭제해도 기존 기록은 남습니다.</p><div class="actions delete-mode-actions" style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><button style="font-size:16px;font-weight:700" onclick="selectAllForDelete()">${selected===total&&total?'☑ 모두 해제':'☐ 모두 선택'}</button><button class="danger" style="font-size:16px;font-weight:700" onclick="deleteSelectedPeople()">선택 ${selected}명 삭제</button></div><button class="delete-mode-cancel" style="width:100%;margin-top:8px;font-size:16px;font-weight:700" onclick="cancelDeleteMode()">취소</button>`;
  }else{
-   box.innerHTML=`<b style="font-size:20px">명단 관리</b><p class="muted" style="font-size:16px;line-height:1.5">화면에서 한 사람씩 추가하거나 여러 명을 선택해 삭제할 수 있습니다.</p><div class="check-manage-actions"><button class="primary" onclick="openAddPerson()">＋ 사람 추가</button><button class="danger" onclick="startDeleteMode()">🗑 여러 명 삭제</button></div><div class="check-excel-wrap"><input id="excelFile" type="file" accept=".xlsm,.xlsx,.xls"><button class="check-excel-btn" onclick="importExcel()">📥 Excel 명단 불러오기</button></div>`;
+   box.innerHTML=`<b style="font-size:20px">명단 관리</b><div class="check-manage-actions"><button class="primary" onclick="openAddPerson()">＋ 사람 추가</button><button class="danger" onclick="startDeleteMode()">🗑 여러 명 삭제</button></div><div class="check-excel-wrap"><input id="excelFile" type="file" accept=".xlsm,.xlsx,.xls"><button class="check-excel-btn" onclick="importExcel()">📥 Excel 명단 불러오기</button></div>`;
  }
 }
 function startDeleteMode(){deleteMode=true;deleteSelected=new Set();render();}
