@@ -1053,7 +1053,11 @@ async function exportExcel(r){
   let value='';
   if(cv===true)value='O';
   else if(typeof cv==='string')value=cv;
-  else if(cv && typeof cv==='object')value=info.relation+(info.time?' · '+info.time:'');
+  else if(cv && typeof cv==='object'){
+    value=info.relation+(info.time?' · '+info.time:'');
+    // 일반 체크는 relation/time이 비어 있어도 체크 상태를 Excel에 기록한다.
+    if(!value && info.checked)value='O';
+  }
   rows.push([i+1,p.name,p.birth||'',p.phone||'',p.address||'',value]);
 });
  const ws=XLSX.utils.aoa_to_sheet(rows),wb=XLSX.utils.book_new();
