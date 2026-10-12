@@ -399,7 +399,7 @@ function getRecord(create=true){
  }
  return r
 }
-function checkedSet(){let r=getRecord(false);return new Map(r?Object.keys(r.checks).filter(k=>r.checks[k]).map(k=>[k,r.checks[k]]):[])}
+function checkedSet(){let r=getRecord(false);return new Map(r?Object.keys(r.checks||{}).filter(k=>parseCheck(r.checks[k]).checked).map(k=>[String(k),r.checks[k]]):[])}
 function specialTopic(){return ['방문상담','물품수령','안부확인'].includes(state.topicType)}
 function parseCheck(v){
  if(v && typeof v==='object') return {relation:v.relation||'',time:v.time||'',memo:v.memo||'',checked:v.checked!==false};
@@ -896,7 +896,7 @@ function routeCheckInfo(id){
 }
 function routeIsChecked(id){
  const r=getRecord(false);
- return !!(r?.checks?.[String(id)]);
+ return parseCheck(r?.checks?.[String(id)]).checked;
 }
 function goCheckFromRoute(){
  document.getElementById('routeModal').style.display='none';document.body.classList.remove('route-open');
@@ -910,7 +910,14 @@ function renderSavedRouteCard(){
  const people=rt.ids.map(id=>state.people.find(p=>String(p.id)===String(id))).filter(Boolean);
  if(!people.length)return '';
  const next=people.findIndex(p=>!routeIsChecked(p.id));
- return `<div class="card" style="background:#f8faff;border:1px solid #dfe7f5;margin-bottom:12px"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><div><b>🚗 현재 동선</b><div class="muted" style="margin-top:4px">${esc(routeModeLabel(rt.mode))}</div></div><button class="small" onclick="openSavedRoute()">동선 보기</button></div><div style="margin-top:10px">${people.map((p,i)=>{const done=routeIsChecked(p.id);const isNext=!done&&i===next;return `<div style="display:flex;gap:8px;align-items:center;padding:7px 0;border-top:1px solid #e8edf5"><span class="route-number" style="width:26px;height:26px;font-size:12px">${i+1}</span><div style="min-width:0;flex:1"><b class="${done?'route-done':''}">${done?'✓ ':''}${esc(p.name)}${isNext?' · 다음 방문':''}</b><span class="route-address">${rt.distances&&rt.distances[String(p.id)]!=null?('약 '+Number(rt.distances[String(p.id)]).toFixed(2)+' km · '):''}${esc(p.address||'주소 없음')}</span></div>${isNext?`<button class="small primary" onclick="openNaverCarRouteById('${String(p.id).replace(/'/g,"\'")}')">🧭 길찾기</button>`:''}</div>`}).join('')}</div></div>`;
+ return `<div class="card" style="background:#f8faff;border:1px solid #dfe7f5;margin-bottom:12px"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><div><b>🚗 현재 동선</b><div class="muted" style="margin-top:4px">${esc(routeModeLabel(rt.mode))}</div></div><div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end"><button class="small" onclick="openSavedRoute()">동선 보기</button><button class="small danger" onclick="cancelSavedRoute()">동선 만들기 취소</button></div></div><div style="margin-top:10px">${people.map((p,i)=>{const done=routeIsChecked(p.id);const isNext=!done&&i===next;return `<div style="display:flex;gap:8px;align-items:center;padding:7px 0;border-top:1px solid #e8edf5"><span class="route-number" style="width:26px;height:26px;font-size:12px">${i+1}</span><div style="min-width:0;flex:1"><b class="${done?'route-done':''}">${done?'✓ ':''}${esc(p.name)}${isNext?' · 다음 방문':''}</b><span class="route-address">${rt.distances&&rt.distances[String(p.id)]!=null?('약 '+Number(rt.distances[String(p.id)]).toFixed(2)+' km · '):''}${esc(p.address||'주소 없음')}</span></div>${isNext?`<button class="small primary" onclick="openNaverCarRouteById('${String(p.id).replace(/'/g,"\'")}')">🧭 길찾기</button>`:''}</div>`}).join('')}</div></div>`;
+}
+function cancelSavedRoute(){
+ if(!confirm('현재 저장된 방문 동선을 취소할까요? 체크 기록과 대상자 명단은 삭제되지 않습니다.'))return;
+ const r=activeRecordId?state.records.find(x=>x.id===activeRecordId):null;
+ if(r)delete r.route;
+ routeSelection=[];routeDistances={};routeCoords=null;
+ save();render();toast('저장된 동선을 취소했습니다.');
 }
 function openSavedRoute(){
  const r=activeRecordId?state.records.find(x=>x.id===activeRecordId):null;
@@ -1005,7 +1012,7 @@ function renderRecords(){
  const box=document.getElementById('records');
  if(!state.records.length){box.innerHTML='<div class="card"><div class="muted">저장된 기록이 없습니다.</div></div>';return}
  state.records.slice().reverse().forEach(r=>{
-  const n=Object.values(r.checks||{}).filter(Boolean).length;
+  const n=Object.values(r.checks||{}).filter(v=>parseCheck(v).checked).length;
   const total=Array.isArray(r.people)&&r.people.length ? r.people.length : state.people.length;
   const d=document.createElement('div');d.className='record-card';
   d.innerHTML=`<div class="record-title">${esc(r.title)}</div><div class="record-meta">${esc(r.date)} · ${n}명 / ${total}명 체크</div><div class="record-actions"><button class="primary">열기</button><button>📥 Excel</button><button class="danger">🗑 삭제</button></div>`;
@@ -1053,10 +1060,10 @@ async function exportExcel(r){
   let value='';
   if(cv===true)value='O';
   else if(typeof cv==='string')value=cv;
-  else if(cv && typeof cv==='object'){
+  else if(cv && typeof cv==='object' && info.checked){
     value=info.relation+(info.time?' · '+info.time:'');
     // 일반 체크는 relation/time이 비어 있어도 체크 상태를 Excel에 기록한다.
-    if(!value && info.checked)value='O';
+    if(!value)value='O';
   }
   rows.push([i+1,p.name,p.birth||'',p.phone||'',p.address||'',value]);
 });
