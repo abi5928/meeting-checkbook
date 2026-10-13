@@ -194,6 +194,7 @@ nav.viewport-bottom-nav{position:fixed!important;left:50%!important;right:auto!i
 @media(max-width:600px){.document-sheet{padding:15px}.signer-sheet{padding:10px}.pdf-stage{padding:4px}}
 
 /* 저장공간 관리 */
+.storage-actions button{font-size:clamp(12px,3.5vw,14px)!important;line-height:1.25;min-height:54px;padding:9px 7px!important;white-space:normal;overflow-wrap:anywhere}
 .storage-card{border:1px solid #e2e8f0;border-radius:14px;padding:12px;background:#f8fafc}.storage-row{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;padding:10px 0;border-bottom:1px solid #e8edf5;font-size:13px}.storage-row:last-child{border-bottom:0}.storage-row span{color:#64748b}.storage-row b{text-align:right;overflow-wrap:anywhere;color:#172033}
 </style>
 </head>
@@ -1331,7 +1332,7 @@ function openManageDetail(type){
  else if(type==='share'){t.textContent='앱 공유';h=`<p class="muted">대상자 자료는 공유하지 않고 방문 체크북 앱 주소만 공유합니다.</p><button class="primary" style="width:100%" onclick="shareApp();closeManageDetail()">📤 앱 주소 공유</button>`}
  else if(type==='help'){t.textContent='사용 안내 및 개인정보 보호';h=`<div class="help-body"><b>① 새로운 체크북</b><br>홈에서 업무 주제를 선택하고 명단을 불러오거나 직접 추가합니다.<br><br><b>② 체크와 메모</b><br>체크 메뉴에서 대상자를 검색하고 전화, 체크, 메모를 사용합니다. ＋ 버튼에서 수령증 작성이나 사진 첨부를 선택할 수 있습니다.<br><br><b>③ 스케줄</b><br>달력에서 날짜를 선택하고 방문 대상자와 간단한 메모를 저장합니다.<br><br><b>④ 개인정보 보호</b><br>이름, 전화번호, 주소, 방문 기록과 상담 메모는 업무 목적으로만 사용하세요. Excel이나 사진을 내보내거나 공유할 때는 기관의 승인된 절차를 따르세요.<br><br><b>⑤ 기록과 저장</b><br>기록은 기본적으로 이 기기의 브라우저 저장공간에 보관됩니다. 브라우저 데이터 삭제나 기기 변경 시 사라질 수 있으므로 기관의 승인된 절차에 따라 필요한 자료를 보관하세요.</div>`}
  else if(type==='data'){t.textContent='데이터 관리';h=`<p class="muted">명단과 기록은 원칙적으로 이 기기의 브라우저 저장공간에 보관됩니다.</p><div class="actions" style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><button onclick="document.getElementById('dataExcelFile')?.click();closeManageDetail()">📥 명단 가져오기</button><button onclick="exportCurrentRecord();closeManageDetail()">📤 기록 내보내기</button></div><input id="dataExcelFile" type="file" accept=".xlsm,.xlsx,.xls" style="display:none" onchange="importExcel('dataExcelFile')">`}
- else if(type==='storage'){t.textContent='저장공간 관리';h=`<div id="storageStatsPanel"><p class="muted">저장 현황을 계산하고 있습니다.</p></div><div class="document-actions" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px"><button class="primary" onclick="closeManageDetail();openPhotoGallery()">📷 사진 관리</button><button onclick="exportAppBackup()">📦 전체 데이터 내보내기</button></div><p class="muted" style="margin-top:10px">내보낸 백업 파일에는 대상자 개인정보, 체크 기록, 메모 및 사진이 포함될 수 있습니다. 기관에서 승인한 안전한 위치에 보관하세요. 브라우저가 알려주는 저장 한도는 기기와 브라우저에 따라 달라질 수 있습니다.</p>`;setTimeout(refreshStorageStats,0)}
+ else if(type==='storage'){t.textContent='저장공간 관리';h=`<div id="storageStatsPanel"><p class="muted">저장 현황을 계산하고 있습니다.</p></div><div class="document-actions storage-actions" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px"><button class="primary" onclick="closeManageDetail();openPhotoGallery()">📷 사진 관리</button><button onclick="exportAppBackup()">📦 전체 데이터 백업</button><button onclick="document.getElementById('restoreBackupFile')?.click()">📂 전체 데이터 복원</button></div><input id="restoreBackupFile" type="file" accept=".json,application/json" style="display:none" onchange="restoreAppBackup(this)"><p class="muted" style="margin-top:10px">백업에는 대상자 개인정보, 체크 기록, 메모 및 사진이 포함될 수 있습니다. 복원하면 현재 앱 데이터가 백업 파일의 데이터로 교체됩니다. 복원 전 현재 데이터도 백업해 주세요.</p>`;setTimeout(refreshStorageStats,0)}
  else if(type==='trash'){const tr=Array.isArray(state.trash)?state.trash:[];const list=!tr.length?'<div class="muted">휴지통이 비어 있습니다.</div>':tr.slice().reverse().map(r=>`<div class="record"><b>${esc(r.title)}</b><div class="muted">${esc(r.date)}</div><div class="actions" style="margin-top:8px"><button class="small" onclick="restoreTrash('${String(r.id).replace(/'/g,"\\'")}');closeManageDetail()">↩ 복원</button><button class="small danger" onclick="permanentDeleteTrash('${String(r.id).replace(/'/g,"\\'")}');closeManageDetail()">영구 삭제</button></div></div>`).join('');t.textContent='휴지통';h=`<p class="muted">삭제된 기록은 휴지통에 보관됩니다.</p>${list}${tr.length?'<button style="width:100%;margin-top:10px" onclick="emptyTrash();closeManageDetail()">휴지통 비우기</button>':''}`}
  else if(type==='reset'){t.textContent='초기화';h=`<p class="muted">모든 명단과 기록, 휴지통을 포함한 앱 데이터를 삭제합니다.</p><div class="warn">삭제한 데이터는 되돌릴 수 없습니다.</div><button class="danger" style="width:100%" onclick="resetAll();closeManageDetail()">모든 데이터 초기화</button>`}
  b.innerHTML=h;m.classList.add('show');
@@ -1351,6 +1352,29 @@ function collectPhotoStorageStats(){let count=0,photoBytes=0;const records=Array
 function roughDataUrlBytes(data){if(typeof data!=='string')return 0;const comma=data.indexOf(',');if(comma<0)return data.length;const b64=data.slice(comma+1);return Math.max(0,Math.floor(b64.length*3/4)-(b64.endsWith('==')?2:b64.endsWith('=')?1:0))}
 async function refreshStorageStats(){const panel=document.getElementById('storageStatsPanel');if(!panel)return;const photos=collectPhotoStorageStats();let stateBytes=0;try{stateBytes=new Blob([JSON.stringify(state)]).size}catch(e){}let usage=null,quota=null;try{if(navigator.storage&&navigator.storage.estimate){const est=await navigator.storage.estimate();usage=Number.isFinite(est.usage)?est.usage:null;quota=Number.isFinite(est.quota)?est.quota:null}}catch(e){}const people=(state.people||[]).length,records=(state.records||[]).length,trash=(state.trash||[]).length;let browserLine=usage!==null?`<div class="storage-row"><span>브라우저 저장공간 사용량</span><b>${formatBytes(usage)}</b></div>`:'<div class="storage-row"><span>브라우저 저장공간 사용량</span><b>이 브라우저에서 확인할 수 없음</b></div>';let quotaLine=quota!==null?`<div class="storage-row"><span>브라우저 저장공간 한도(추정)</span><b>${formatBytes(quota)}</b></div>`:'<div class="storage-row"><span>브라우저 저장공간 한도</span><b>확인 불가</b></div>';panel.innerHTML=`<div class="storage-card"><div class="storage-row"><span>저장된 사진</span><b>${photos.count.toLocaleString()}장</b></div><div class="storage-row"><span>사진 데이터 용량(추정)</span><b>${formatBytes(photos.photoBytes)}</b></div><div class="storage-row"><span>앱 데이터 크기(추정)</span><b>${formatBytes(stateBytes)}</b></div><div class="storage-row"><span>명단 인원</span><b>${people.toLocaleString()}명</b></div><div class="storage-row"><span>체크 기록</span><b>${records.toLocaleString()}건</b></div><div class="storage-row"><span>휴지통 기록</span><b>${trash.toLocaleString()}건</b></div>${browserLine}${quotaLine}</div><p class="muted">사진·앱 데이터 크기는 현재 앱 상태를 기준으로 계산한 추정치입니다. 브라우저 저장공간 사용량에는 이 앱 외의 사이트 데이터가 포함될 수 있습니다.</p>`}
 function exportAppBackup(){try{const payload={app:'방문 체크북',backupVersion:1,exportedAt:new Date().toISOString(),state};const blob=new Blob([JSON.stringify(payload)],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='방문체크북_전체백업_'+new Date().toISOString().slice(0,10)+'.json';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1500);toast('전체 데이터 백업 파일을 내보냈습니다.')}catch(e){alert('백업 파일을 만들지 못했습니다. 다시 시도해 주세요.')}}
+async function restoreAppBackup(input){
+ const file=input?.files?.[0];if(!file)return;
+ try{
+  if(file.size>150*1024*1024){alert('백업 파일이 너무 큽니다(150MB 초과).');return}
+  const raw=await file.text();const payload=JSON.parse(raw);
+  if(!payload||payload.app!=='방문 체크북'||payload.backupVersion!==1||!payload.state||typeof payload.state!=='object')throw new Error('방문 체크북에서 만든 지원되는 전체 백업 파일이 아닙니다.');
+  const incoming=payload.state;
+  if(!Array.isArray(incoming.people)||!Array.isArray(incoming.records)||!Array.isArray(incoming.trash)||!Array.isArray(incoming.photoLibrary))throw new Error('백업 파일에 필수 데이터 항목이 없습니다. 파일이 손상되었을 수 있습니다.');
+  const summary=`백업 날짜: ${payload.exportedAt||'알 수 없음'}\n명단: ${incoming.people.length}명\n기록: ${incoming.records.length}건\n사진 보관함: ${incoming.photoLibrary.length}장\n\n복원하면 현재 앱 데이터가 이 백업 내용으로 교체됩니다. 현재 데이터가 필요하면 먼저 전체 데이터 백업을 하세요.\n\n이 백업을 복원할까요?`;
+  if(!confirm(summary))return;
+  // Fill optional fields for compatibility while preserving the incoming data.
+  const restored={...defaultState(),...incoming};
+  restored.people=Array.isArray(incoming.people)?incoming.people:[];
+  restored.records=Array.isArray(incoming.records)?incoming.records:[];
+  restored.trash=Array.isArray(incoming.trash)?incoming.trash:[];
+  restored.photoLibrary=Array.isArray(incoming.photoLibrary)?incoming.photoLibrary:[];
+  state=restored;
+  save();
+  await saveChain;
+  input.value='';closeManageDetail();render();toast('전체 데이터 복원이 완료되었습니다.');
+ }catch(e){alert('복원할 수 없습니다.\n'+(e.message||'백업 파일을 확인해 주세요.'))}
+ finally{if(input)input.value=''}
+}
 function exportCurrentRecord(){const r=getRecord(false);if(!r||!(r.people||[]).length){alert('내보낼 기록이 없습니다.');return}exportExcel(r)}
 function restoreTrash(id){
  const idx=state.trash.findIndex(x=>String(x.id)===String(id));
