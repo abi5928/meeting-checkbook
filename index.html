@@ -37,6 +37,11 @@ nav button{flex:1;background:none;font-size:12px;padding:7px 2px;color:#64748b;l
 .small{font-size:12px;padding:8px 10px}.actions button,.actions select{min-height:42px}.help-summary{cursor:pointer;font-weight:800;list-style:none;padding:2px 0}.help-summary::-webkit-details-marker{display:none}.help-summary::before{content:"▶";display:inline-block;margin-right:7px;font-size:11px}.help-details[open] .help-summary::before{content:"▼"}.help-body{margin-top:10px;font-size:13px;line-height:1.7}.danger{background:#fff0f0;color:#b42318}
 .route-person{display:flex;align-items:center;gap:9px;padding:10px 4px;border-bottom:1px solid #edf0f5}.route-person input{width:22px;height:22px;flex:none}.route-order{display:inline-flex;width:26px;height:26px;border-radius:50%;align-items:center;justify-content:center;background:#eef2f8;font-weight:800;font-size:12px}.route-result{display:flex;gap:10px;align-items:flex-start;padding:12px 4px;border-bottom:1px solid #edf0f5}.route-number{width:30px;height:30px;border-radius:50%;background:#182235;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;flex:none}.route-updown{display:flex;gap:5px;margin-left:auto}.route-updown button{padding:6px 8px}.route-address{display:block;color:#718096;font-size:12px;margin-top:3px}.route-mode{display:grid;grid-template-columns:1fr;gap:7px;margin:10px 0}.route-mode label{display:flex;align-items:center;gap:9px;padding:11px 12px;border:1px solid #dbe2ef;border-radius:12px;background:#f8fafc;font-weight:700}.route-mode input{width:20px;height:20px;margin:0}.route-mode .hint{font-size:11px;font-weight:500;color:#718096;margin-left:auto}.route-result-panel{display:none;margin-top:12px;padding:13px;border:2px solid #dbe3f1;border-radius:16px;background:#f8faff}.route-result-panel.show{display:block}.route-result-title{font-size:16px;font-weight:800;margin-bottom:5px}.route-result-sub{font-size:12px;color:#718096;margin-bottom:8px}.route-switch{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}.route-done{color:#198754;font-weight:800}.route-next{background:#eaf2ff;color:#155eef;font-weight:800}
 
+/* 팝업·설정 버튼 글씨 20% 확대: 버튼 기능과 배치는 유지 */
+.modal .sheet button{font-size:1.2em!important}
+#routeCloseBtn{font-size:1.2em!important}
+.security-primary b,.security-secondary b{font-size:19.2px!important}
+.security-link{font-size:16.8px!important}
 /* 반응형 업무 화면 */
 @media (min-width:600px){
   header{padding:20px 28px 16px}
@@ -520,7 +525,7 @@ function createNewTopic(){
  reader.readAsArrayBuffer(f);
 }
 function navigateTab(nextTab){document.getElementById('routeModal').style.display='none';document.body.classList.remove('route-open');tab=nextTab;render();}
-function render(){setNav();const app=document.querySelector('.app');app?.classList.toggle('check-mode',tab==='check');app?.classList.toggle('manage-mode',tab==='settings');app?.classList.toggle('home-mode',tab==='home');const titleEl=document.querySelector('#appHeader .title');if(titleEl)titleEl.textContent='📋 방문 체크북';if(tab==='home')renderHome();else if(tab==='check')renderCheck();else if(tab==='records')renderRecords();else if(tab==='settings')renderManage()}
+function render(){setNav();const app=document.querySelector('.app');app?.classList.toggle('check-mode',tab==='check');app?.classList.toggle('manage-mode',tab==='settings');app?.classList.toggle('home-mode',tab==='home');const titleEl=document.querySelector('#appHeader .title');if(titleEl)titleEl.textContent=tab==='records'?'목록':'📋 방문 체크북';if(tab==='home')renderHome();else if(tab==='check')renderCheck();else if(tab==='records')renderRecords();else if(tab==='settings')renderManage()}
 document.getElementById('datePicker').value=state.date;document.getElementById('datePicker').onchange=e=>{applyGlobalDate(e.target.value)};
 const nativeDatePicker=document.getElementById('nativeDatePicker');
 nativeDatePicker.value=state.date;
@@ -601,13 +606,12 @@ function renderCheck(){
    </section>
    <button class="check-route-card" onclick="openRoute()"><span class="route-car-label">${appIcon('car')} 동선 만들기</span><span>›</span></button>
    ${renderSavedRouteCard()}
-   <div class="check-search-card">${state.topicType==='기타'?`<input id="titleInput" type="text" value="${esc(state.title)}" placeholder="기타 주제명" style="margin-bottom:8px">`:''}
+   <div class="check-search-card">
      <div class="searchrow"><input id="search" type="search" value="" placeholder="🔍 대상자 이름 검색" autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false" name="person_search"><button class="mic" id="mic">🎙️</button></div>
    </div>
    <div id="searchList" class="list check-people"></div>
    <div id="peopleTools"></div>
  </div>`;
- const titleInput=document.getElementById('titleInput'); if(titleInput)titleInput.onchange=e=>{state.title=e.target.value.trim()||'기타';state.topicType='기타';const rr=activeRecordId?state.records.find(x=>x.id===activeRecordId):null;if(rr){rr.title=state.title;rr.topicType='기타'}save();render()};
  document.getElementById('search').oninput=e=>{query=e.target.value;drawSearch()};
  document.getElementById('mic').onclick=voiceInput;drawSearch();drawPeopleTools();
 }
