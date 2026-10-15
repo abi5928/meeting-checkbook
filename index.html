@@ -289,6 +289,19 @@ nav.viewport-bottom-nav{position:fixed!important;left:50%!important;right:auto!i
 #savedDocumentViewerModal .pdf-viewer-bottom-nav svg .solid{fill:currentColor;stroke:none}
 #savedDocumentViewerModal .pdf-viewer-bottom-nav svg .cutout{fill:var(--surface,#fff);stroke:none}
 .photo-name-editable{cursor:pointer;text-decoration:underline;text-decoration-style:dotted;text-underline-offset:3px}.photo-name-editable:focus{outline:2px solid #93c5fd;outline-offset:3px;border-radius:4px}
+
+/* v46: photo selection controls must remain tappable on iOS */
+.photo-card{position:relative}
+.photo-select{position:relative!important;z-index:20!important;display:block!important;visibility:visible!important;opacity:1!important;pointer-events:auto!important;appearance:auto!important;-webkit-appearance:checkbox!important;accent-color:#2563eb;margin:0 0 4px 0!important;padding:0!important;min-width:24px;min-height:24px;cursor:pointer;flex-shrink:0}
+.photo-card .photo-thumb{position:relative;z-index:1;pointer-events:none}
+/* The settings screen already contains the photo trash entry. The gallery only exposes the three primary actions. */
+/* v46: put schedule modal above the fixed bottom navigation and reserve space for its controls */
+#scheduleModal{z-index:12000!important}
+#scheduleModal .schedule-sheet{position:relative;z-index:12001;display:flex!important;flex-direction:column!important;overflow:hidden!important}
+#scheduleModal #scheduleBody{flex:1 1 auto!important;min-height:0!important;overflow-y:auto!important;overscroll-behavior:contain;padding-bottom:24px!important}
+#scheduleModal .schedule-sheet>.close{position:relative!important;z-index:5!important;flex:0 0 auto!important;margin-top:10px!important;margin-bottom:env(safe-area-inset-bottom)!important}
+#scheduleModal .schedule-editor{padding-bottom:28px!important;margin-bottom:12px!important}
+
 </style>
 </head>
 <body>
@@ -966,7 +979,7 @@ function renderPhotoGallery(){
   body.innerHTML=cards.length?`<div class="photo-grid">${cards.join('')}</div>`:'<div class="muted">사진 휴지통이 비어 있습니다.</div>';return;
  }
  if(title)title.textContent='📷 사진';if(capture)capture.style.display='';
- if(footer)footer.innerHTML='<button class="primary" onclick="exportSelectedPhotoRecords()">내보내기</button><button class="danger" onclick="deleteSelectedPhotoRecords()">휴지통 이동</button><button onclick="openPhotoTrash()">휴지통</button><button class="close" onclick="closePhotoGallery()">닫기</button>';
+ if(footer)footer.innerHTML='<button class="primary" onclick="exportSelectedPhotoRecords()">내보내기</button><button class="danger" onclick="deleteSelectedPhotoRecords()"><span aria-hidden="true">🗑️</span> 삭제</button><button class="close" onclick="closePhotoGallery()">닫기</button>';
  (state.records||[]).forEach(r=>Object.entries(r.checks||{}).forEach(([id,v])=>{const inf=parseCheck(v);(inf.photos||[]).forEach((ph,i)=>{const person=(r.people||[]).find(p=>String(p.id)===String(id))||(state.people||[]).find(p=>String(p.id)===String(id));const rid=String(r.id),pid=String(id),key=photoRecordKey(rid,pid,i),selected=selectedPhotoRecordKeys.has(key);cards.push(`<div class="photo-card ${selected?'is-selected':''}"><input class="photo-select" type="checkbox" aria-label="사진 선택" ${selected?'checked':''} onchange="togglePhotoRecordSelection('${rid}','${pid}',${i},this.checked,this)"><img class="photo-thumb" src="${ph.data}" alt="첨부 사진"><b class="photo-name-editable" role="button" tabindex="0" title="이름을 눌러 수정" onclick="editRecordPhotoName('${rid}','${pid}',${i})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();editRecordPhotoName('${rid}','${pid}',${i})}">${esc(photoDisplayName(ph,person))}</b><small>${esc(r.date||'기록일 미상')}</small></div>`)})}));
  (state.photoLibrary||[]).forEach(ph=>{const key=standalonePhotoKey(ph.id),selected=selectedPhotoRecordKeys.has(key);cards.push(`<div class="photo-card ${selected?'is-selected':''}"><input class="photo-select" type="checkbox" aria-label="사진 선택" ${selected?'checked':''} onchange="toggleStandalonePhotoSelection('${escAttr(ph.id)}',this.checked,this)"><img class="photo-thumb" src="${ph.data}" alt="직접 촬영 사진"><b class="photo-name-editable" role="button" tabindex="0" title="이름을 눌러 수정" onclick="editStandalonePhotoName('${escAttr(ph.id)}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();editStandalonePhotoName('${escAttr(ph.id)}')}">${esc(ph.name||'이름 미입력')}</b><small>${esc(ph.date||'촬영일 미상')}</small></div>`)});
  body.innerHTML=cards.length?`<div class="photo-grid">${cards.join('')}</div>`:'<div class="muted">아직 사진이 없습니다. 직접 촬영하거나 체크 메뉴에서 사진을 첨부하세요.</div>';updatePhotoSelectionCount();
