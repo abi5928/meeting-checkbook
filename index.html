@@ -307,6 +307,34 @@ nav.viewport-bottom-nav{position:fixed!important;left:50%!important;right:auto!i
 .trash-section-label{font-size:15px;font-weight:800;color:#334155;margin:10px 0 8px}
 .trash-photo-row{padding:8px 0!important}
 
+
+/* v56: modal footer button visual unification only; existing handlers and action logic unchanged */
+.modal .sheet .schedule-modal-actions button,
+.modal .sheet .form-sticky-actions button,
+.modal .sheet .document-actions button,
+.modal .sheet .receipt-preview-actions button,
+.modal .sheet .photo-gallery-footer button,
+.modal .sheet .new-sheet-actions button {
+  box-sizing:border-box;
+  min-height:48px;
+  border-radius:12px;
+  font-weight:800;
+  line-height:1.25;
+  margin-top:0;
+}
+.modal .sheet .schedule-modal-actions .primary,
+.modal .sheet .form-sticky-actions .primary,
+.modal .sheet .document-actions .primary,
+.modal .sheet .receipt-preview-actions .primary,
+.modal .sheet .photo-gallery-footer .primary { background:#2563eb!important;color:#fff!important; }
+.modal .sheet .schedule-modal-actions .close,
+.modal .sheet .form-sticky-actions .close,
+.modal .sheet .document-actions .close,
+.modal .sheet .receipt-preview-actions .close,
+.modal .sheet .photo-gallery-footer .close { background:#eef1f5!important;color:#182235!important;box-shadow:none!important; }
+.modal .sheet .schedule-modal-actions,
+.modal .sheet .form-sticky-actions,
+.modal .sheet .receipt-preview-actions { gap:8px; }
 </style>
 </head>
 <body>
