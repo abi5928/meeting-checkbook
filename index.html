@@ -858,7 +858,34 @@ async function printConsent(){
 
 let savedDocsDbPromise=null;
 function openSavedDocsDb(){if(savedDocsDbPromise)return savedDocsDbPromise;savedDocsDbPromise=new Promise((resolve,reject)=>{const req=indexedDB.open('meeting-checkbook-documents',2);req.onupgradeneeded=()=>{const db=req.result;if(!db.objectStoreNames.contains('documents')){const st=db.createObjectStore('documents',{keyPath:'id',autoIncrement:true});st.createIndex('date','date');}if(!db.objectStoreNames.contains('documentTrash')){const tr=db.createObjectStore('documentTrash',{keyPath:'trashId',autoIncrement:true});tr.createIndex('deletedAt','deletedAt');}};req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error)});return savedDocsDbPromise}
-async function saveDocumentRecord(doc){const db=await openSavedDocsDb();return new Promise((resolve,reject)=>{const tx=db.transaction('documents','readwrite');tx.objectStore('documents').add({...doc,createdAt:new Date().toISOString()}).onsuccess=e=>resolve(e.target.result);tx.onerror=()=>reject(tx.error)})}
+async function inspectPdfBlob(input){
+ if(!input)throw new Error('PDF 데이터가 없습니다.');
+ let blob=input;
+ if(!(blob instanceof Blob)){
+  if(typeof blob.arrayBuffer==='function')blob=new Blob([await blob.arrayBuffer()],{type:'application/pdf'});
+  else if(input instanceof ArrayBuffer||ArrayBuffer.isView(input))blob=new Blob([input],{type:'application/pdf'});
+  else throw new Error('PDF 데이터 형식을 읽을 수 없습니다.');
+ }
+ if(blob.size<8)throw new Error('PDF 데이터가 너무 작습니다.');
+ const head=new Uint8Array(await blob.slice(0,8).arrayBuffer());
+ const header=String.fromCharCode(...head);
+ if(!header.startsWith('%PDF-'))throw new Error('파일 시작 부분이 PDF 형식(%PDF-)과 일치하지 않습니다.');
+ return blob.type==='application/pdf'?blob:new Blob([await blob.arrayBuffer()],{type:'application/pdf'});
+}
+async function saveDocumentRecord(doc){
+ const blob=await inspectPdfBlob(doc?.blob);
+ const db=await openSavedDocsDb();
+ return new Promise((resolve,reject)=>{
+  let id=null,requestError=null;
+  const tx=db.transaction('documents','readwrite');
+  const req=tx.objectStore('documents').add({...doc,blob,createdAt:new Date().toISOString()});
+  req.onsuccess=()=>{id=req.result};
+  req.onerror=()=>{requestError=req.error};
+  tx.oncomplete=()=>id!==null?resolve(id):reject(requestError||new Error('문서 저장 결과를 확인할 수 없습니다.'));
+  tx.onabort=()=>reject(tx.error||requestError||new Error('문서 저장이 취소되었습니다.'));
+  tx.onerror=()=>reject(tx.error||requestError||new Error('문서 저장에 실패했습니다.'));
+ });
+}
 async function getSavedDocumentRecords(){const db=await openSavedDocsDb();return new Promise((resolve,reject)=>{const req=db.transaction('documents','readonly').objectStore('documents').getAll();req.onsuccess=()=>resolve((req.result||[]).sort((a,b)=>(b.createdAt||'').localeCompare(a.createdAt||'')));req.onerror=()=>reject(req.error)})}
 function downloadBlob(blob,filename){const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=filename;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),5000)}
 function returnToConsentStep(){document.getElementById('documentSavedModal')?.remove();document.getElementById('receiptManageModal')?.classList.remove('show');document.getElementById('savedDocumentsModal')?.classList.remove('show');document.getElementById('consentModal')?.classList.add('show')}
@@ -872,11 +899,40 @@ function updateSelectedDocumentCount(){const checks=Array.from(document.querySel
 async function getDocumentsByIds(ids){const all=await getSavedDocumentRecords();return all.filter(d=>ids.includes(Number(d.id))&&d.blob)}
 async function exportSelectedDocuments(){try{const ids=getSelectedDocumentIds();if(!ids.length){alert('내보낼 문서를 먼저 선택하세요.');return}const docs=await getDocumentsByIds(ids);if(!docs.length){alert('선택한 문서의 PDF 파일을 찾을 수 없습니다.');return}const files=docs.map(d=>new File([d.blob],d.filename||'문서.pdf',{type:'application/pdf'}));if(navigator.share&&navigator.canShare&&navigator.canShare({files})){try{await navigator.share({title:'방문 체크북 선택 문서',text:`선택한 PDF ${files.length}건`,files});toast('공유 메뉴를 열었습니다.');return}catch(e){if(e.name==='AbortError')return;console.warn('공유 실패, 다운로드로 전환',e)}}for(let i=0;i<docs.length;i++){downloadBlob(docs[i].blob,docs[i].filename||'문서.pdf');if(i<docs.length-1)await new Promise(r=>setTimeout(r,350))}toast(`선택한 PDF ${docs.length}건의 다운로드를 요청했습니다.`)}catch(e){console.error(e);alert('선택한 PDF 내보내기에 실패했습니다.')}}
 let openSavedDocumentRecord=null,openSavedDocumentUrl=null;
-async function openSavedDocument(id){const db=await openSavedDocsDb();const doc=await new Promise((resolve,reject)=>{const r=db.transaction('documents','readonly').objectStore('documents').get(Number(id));r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error)});if(!doc?.blob){alert('저장된 PDF를 찾을 수 없습니다.');return}if(openSavedDocumentUrl)URL.revokeObjectURL(openSavedDocumentUrl);openSavedDocumentRecord=doc;openSavedDocumentUrl=URL.createObjectURL(doc.blob);document.getElementById('savedDocumentViewerTitle').textContent=doc.filename||'PDF 문서';document.getElementById('savedDocumentViewerFrame').src=openSavedDocumentUrl;document.getElementById('savedDocumentViewerModal').classList.add('show')}
+async function openSavedDocument(id){
+ try{
+  const db=await openSavedDocsDb();
+  const doc=await new Promise((resolve,reject)=>{const r=db.transaction('documents','readonly').objectStore('documents').get(Number(id));r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error)});
+  if(!doc)throw new Error('저장된 문서를 찾을 수 없습니다.');
+  const blob=await inspectPdfBlob(doc.blob);
+  if(openSavedDocumentUrl)URL.revokeObjectURL(openSavedDocumentUrl);
+  openSavedDocumentRecord={...doc,blob};openSavedDocumentUrl=URL.createObjectURL(blob);
+  const frame=document.getElementById('savedDocumentViewerFrame');
+  document.getElementById('savedDocumentViewerTitle').textContent=doc.filename||'PDF 문서';
+  frame.onload=()=>{if(!openSavedDocumentUrl)return;};
+  frame.src=openSavedDocumentUrl;
+  document.getElementById('savedDocumentViewerModal').classList.add('show');
+ }catch(e){console.error('PDF 열기 실패:',e);alert('PDF를 열지 못했습니다. '+(e?.message||'데이터 또는 표시 기능을 확인해야 합니다.'));}
+}
 function closeSavedDocumentViewer(){document.getElementById('savedDocumentViewerModal').classList.remove('show');document.getElementById('savedDocumentViewerFrame').src='about:blank';if(openSavedDocumentUrl){URL.revokeObjectURL(openSavedDocumentUrl);openSavedDocumentUrl=null}openSavedDocumentRecord=null}
 async function exportOpenSavedDocument(){if(!openSavedDocumentRecord?.blob){toast('열려 있는 문서가 없습니다.');return}const doc=openSavedDocumentRecord;const file=new File([doc.blob],doc.filename||'문서.pdf',{type:'application/pdf'});if(navigator.share&&navigator.canShare&&navigator.canShare({files:[file]})){try{await navigator.share({title:doc.filename||'PDF 문서',files:[file]});toast('공유 메뉴를 열었습니다.');return}catch(e){if(e.name==='AbortError')return;console.warn('PDF 공유 실패, 다운로드로 전환',e)}}downloadBlob(doc.blob,doc.filename||'문서.pdf');toast('PDF 다운로드를 요청했습니다.')}
 async function deleteSavedDocument(id){if(!confirm('이 문서를 휴지통으로 이동할까요? 휴지통에서 복원할 수 있습니다.'))return;try{await moveSavedDocumentsToTrash([Number(id)]);await refreshSavedDocuments();toast('문서를 휴지통으로 이동했습니다.')}catch(e){console.error(e);alert('문서를 휴지통으로 이동하지 못했습니다.')}}
-async function moveSavedDocumentsToTrash(ids){const unique=[...new Set(ids.map(Number).filter(Number.isFinite))];if(!unique.length)return 0;const db=await openSavedDocsDb();return new Promise((resolve,reject)=>{const tx=db.transaction(['documents','documentTrash'],'readwrite');const docs=tx.objectStore('documents'),trash=tx.objectStore('documentTrash');let moved=0;unique.forEach(id=>{const req=docs.get(id);req.onsuccess=()=>{const doc=req.result;if(!doc)return;const item={...doc,originalId:doc.id,deletedAt:new Date().toISOString()};delete item.id;const add=trash.add(item);add.onsuccess=()=>{docs.delete(id);moved++}}});tx.oncomplete=()=>resolve(moved);tx.onerror=()=>reject(tx.error||new Error('문서 이동 실패'));tx.onabort=()=>reject(tx.error||new Error('문서 이동 취소'))})}
+async function moveSavedDocumentsToTrash(ids){
+ const unique=[...new Set(ids.map(Number).filter(n=>Number.isSafeInteger(n)&&n>0))];if(!unique.length)return 0;
+ const db=await openSavedDocsDb();let moved=0;
+ for(const id of unique){
+  const doc=await new Promise((resolve,reject)=>{const tx=db.transaction('documents','readonly'),r=tx.objectStore('documents').get(id);r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error)});
+  if(!doc)continue;
+  const blob=await inspectPdfBlob(doc.blob);
+  // 먼저 휴지통에 완전한 데이터를 저장하고, 트랜잭션 완료 후에만 원본을 삭제한다.
+  const trashId=await new Promise((resolve,reject)=>{let key=null,err=null;const tx=db.transaction('documentTrash','readwrite'),r=tx.objectStore('documentTrash').add({...doc,blob,originalId:doc.id,deletedAt:new Date().toISOString()});r.onsuccess=()=>key=r.result;r.onerror=()=>err=r.error;tx.oncomplete=()=>key!==null?resolve(key):reject(err||new Error('휴지통 저장 결과를 확인할 수 없습니다.'));tx.onabort=()=>reject(tx.error||err||new Error('휴지통 저장이 취소되었습니다.'));tx.onerror=()=>reject(tx.error||err||new Error('휴지통 저장에 실패했습니다.'))});
+  try{
+   await new Promise((resolve,reject)=>{const tx=db.transaction('documents','readwrite'),r=tx.objectStore('documents').delete(id);r.onerror=()=>reject(r.error);tx.oncomplete=resolve;tx.onabort=()=>reject(tx.error||new Error('원본 정리에 실패했습니다.'));tx.onerror=()=>reject(tx.error||new Error('원본 정리에 실패했습니다.'))});
+   moved++;
+  }catch(e){console.error('휴지통에는 저장했지만 원본 정리 실패:',id,trashId,e);throw new Error('문서는 휴지통에 보관했지만 원본 정리에 실패했습니다. 휴지통과 문서함을 확인해 주세요.');}
+ }
+ return moved;
+}
 async function deleteSelectedDocuments(){try{const ids=getSelectedDocumentIds();if(!ids.length){alert('삭제할 문서를 먼저 선택하세요.');return}if(!confirm(`선택한 문서 ${ids.length}건을 휴지통으로 이동할까요? 휴지통에서 복원할 수 있습니다.`))return;const moved=await moveSavedDocumentsToTrash(ids);await refreshSavedDocuments();toast(`문서 ${moved}건을 휴지통으로 이동했습니다.`)}catch(e){console.error(e);alert('선택한 문서를 휴지통으로 이동하지 못했습니다.')}}
 async function exportSavedDocument(id){try{const db=await openSavedDocsDb();const doc=await new Promise((resolve,reject)=>{const r=db.transaction('documents','readonly').objectStore('documents').get(Number(id));r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error)});if(!doc?.blob){alert('저장된 PDF를 찾을 수 없습니다.');return}const file=new File([doc.blob],doc.filename||'문서.pdf',{type:'application/pdf'});if(navigator.share&&navigator.canShare&&navigator.canShare({files:[file]})){try{await navigator.share({title:doc.filename||'PDF 문서',files:[file]});toast('공유 메뉴를 열었습니다.');return}catch(e){if(e.name==='AbortError')return;console.warn('PDF 공유 실패, 다운로드로 전환',e)}}downloadBlob(doc.blob,doc.filename||'문서.pdf')}catch(e){console.error(e);alert('PDF 내보내기에 실패했습니다.')}}
 function blobToDataUrl(blob){return new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(r.result);r.onerror=()=>reject(r.error);r.readAsDataURL(blob)})}
@@ -1728,72 +1784,35 @@ async function getDocumentTrashRecords(){const db=await openSavedDocsDb();return
 async function refreshDocumentTrashSettings(){const el=document.getElementById('documentTrashSettingsSection');if(!el)return;try{const docs=await getDocumentTrashRecords();if(!docs.length){el.innerHTML='<div class="muted">문서가 없습니다.</div>';return}el.innerHTML=docs.map(d=>{const id=String(d.trashId),checked=selectedDocumentTrashIds.has(id);return `<label class="record" style="display:flex;align-items:flex-start;gap:10px;cursor:pointer"><input type="checkbox" style="width:23px;height:23px;flex:0 0 auto;margin-top:3px" aria-label="휴지통 문서 선택" ${checked?'checked':''} onchange="toggleDocumentTrashSelection('${id}',this.checked)"><span style="flex:1;min-width:0"><b>${esc(d.type||'문서')} · ${esc(d.person||'')}</b><span class="muted" style="display:block">${esc(d.date||'')} · ${esc(d.filename||'PDF 문서')}</span></span></label>`}).join('')+`<div class="muted" style="margin:8px 0">선택 ${selectedDocumentTrashIds.size}건</div><div class="document-actions" style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><button onclick="restoreSelectedDocumentTrash()">선택 복원</button><button class="danger" onclick="permanentlyDeleteSelectedDocumentTrash()">선택 영구 삭제</button></div><button style="width:100%;margin-top:8px" onclick="emptyDocumentTrash()">문서 휴지통 비우기</button>`}catch(e){console.error(e);el.innerHTML='<div class="muted">문서 휴지통을 불러오지 못했습니다.</div>'}}
 function toggleDocumentTrashSelection(id,checked){if(checked)selectedDocumentTrashIds.add(String(id));else selectedDocumentTrashIds.delete(String(id));refreshDocumentTrashSettings()}
 async function restoreSelectedDocumentTrash(){
- const ids=[...selectedDocumentTrashIds].map(Number).filter(Number.isFinite);
+ const ids=[...selectedDocumentTrashIds].map(Number).filter(n=>Number.isSafeInteger(n)&&n>0);
  if(!ids.length){toast('복원할 문서를 선택하세요.');return}
- let restored=0, failed=0;
- try{
-  const db=await openSavedDocsDb();
-  const getRecord=(storeName,id)=>new Promise((resolve,reject)=>{
-   const tx=db.transaction(storeName,'readonly');
-   const req=tx.objectStore(storeName).get(id);
-   req.onsuccess=()=>resolve(req.result);
-   req.onerror=()=>reject(req.error||new Error('휴지통 문서를 읽지 못했습니다.'));
-  });
-  const addDocument=doc=>new Promise((resolve,reject)=>{
-   const tx=db.transaction('documents','readwrite');
-   const req=tx.objectStore('documents').add(doc);
-   let newId=null;
-   req.onsuccess=()=>{newId=req.result};
-   req.onerror=()=>reject(req.error||new Error('문서 저장에 실패했습니다.'));
-   tx.oncomplete=()=>resolve(newId);
-   tx.onabort=()=>reject(tx.error||new Error('문서 저장이 취소되었습니다.'));
-   tx.onerror=()=>reject(tx.error||new Error('문서 저장에 실패했습니다.'));
-  });
-  const deleteTrash=id=>new Promise((resolve,reject)=>{
-   const tx=db.transaction('documentTrash','readwrite');
-   tx.objectStore('documentTrash').delete(id);
-   tx.oncomplete=resolve;
-   tx.onabort=()=>reject(tx.error||new Error('휴지통 정리에 실패했습니다.'));
-   tx.onerror=()=>reject(tx.error||new Error('휴지통 정리에 실패했습니다.'));
-  });
-  for(const id of ids){
-   try{
-    const item=await getRecord('documentTrash',id);
-    if(!item)throw new Error('휴지통에서 문서를 찾을 수 없습니다.');
-    if(!item.blob || !(Number(item.blob.size)>0))throw new Error('PDF 원본 데이터가 없거나 비어 있습니다.');
-    let blob=item.blob;
-    if(!(blob instanceof Blob)){
-     if(typeof blob.arrayBuffer==='function')blob=new Blob([await blob.arrayBuffer()],{type:'application/pdf'});
-     else throw new Error('PDF 원본 형식을 읽을 수 없습니다.');
-    }else if(blob.type!=='application/pdf'){
-     blob=new Blob([await blob.arrayBuffer()],{type:'application/pdf'});
-    }
-    if(!(blob.size>0))throw new Error('PDF 원본 데이터가 비어 있습니다.');
-    const originalId=Number(item.originalId);
-    let existing=null;
-    if(Number.isFinite(originalId)&&originalId>0)existing=await getRecord('documents',originalId);
-    const doc={...item,blob};
-    delete doc.trashId;delete doc.deletedAt;delete doc.originalId;delete doc.id;
-    if(Number.isFinite(originalId)&&originalId>0&&!existing)doc.id=originalId;
-    await addDocument(doc);
-    // 문서함 저장이 완료된 뒤에만 휴지통 원본을 제거한다.
-    await deleteTrash(id);
-    restored++;
-   }catch(oneError){
-    failed++;
-    console.error('개별 PDF 복원 실패:',id,oneError);
+ let restored=0,failed=0,already=0;const db=await openSavedDocsDb();
+ const read=(store,id)=>new Promise((resolve,reject)=>{const tx=db.transaction(store,'readonly'),r=tx.objectStore(store).get(id);r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error);tx.onabort=()=>reject(tx.error||new Error('데이터를 읽지 못했습니다.'))});
+ const addDoc=doc=>new Promise((resolve,reject)=>{let key=null,err=null;const tx=db.transaction('documents','readwrite'),r=tx.objectStore('documents').add(doc);r.onsuccess=()=>key=r.result;r.onerror=()=>err=r.error;tx.oncomplete=()=>key!==null?resolve(key):reject(err||new Error('문서 저장 결과를 확인할 수 없습니다.'));tx.onabort=()=>reject(tx.error||err||new Error('문서 저장이 취소되었습니다.'));tx.onerror=()=>reject(tx.error||err||new Error('문서 저장에 실패했습니다.'))});
+ const removeTrash=id=>new Promise((resolve,reject)=>{const tx=db.transaction('documentTrash','readwrite'),r=tx.objectStore('documentTrash').delete(id);r.onerror=()=>reject(r.error);tx.oncomplete=resolve;tx.onabort=()=>reject(tx.error||new Error('휴지통 정리에 실패했습니다.'));tx.onerror=()=>reject(tx.error||new Error('휴지통 정리에 실패했습니다.'))});
+ for(const trashId of ids){
+  try{
+   const item=await read('documentTrash',trashId);if(!item)throw new Error('휴지통에서 문서를 찾을 수 없습니다.');
+   const blob=await inspectPdfBlob(item.blob);
+   const originalId=Number(item.originalId);
+   let existing=null;if(Number.isSafeInteger(originalId)&&originalId>0)existing=await read('documents',originalId);
+   if(existing){
+    // 이전 시도에서 문서 저장은 성공했으나 휴지통 정리만 실패한 경우 중복 추가하지 않는다.
+    const existingBlob=await inspectPdfBlob(existing.blob);
+    if(existingBlob.size===blob.size){await removeTrash(trashId);already++;continue;}
+    throw new Error('같은 원본 ID의 문서가 이미 있지만 데이터 크기가 다릅니다. 중복 방지를 위해 원본을 유지했습니다.');
    }
-  }
-  selectedDocumentTrashIds.clear();
-  await refreshDocumentTrashSettings();
-  if(restored)await refreshSavedDocuments();
-  if(restored&&failed)alert(`문서 ${restored}건을 복원했습니다. ${failed}건은 복원하지 못했으며 원본은 휴지통에 유지했습니다.`);
-  else if(restored)toast(`문서 ${restored}건을 복원했습니다. 저장된 문서함에서 열어 확인하세요.`);
-  else alert('문서를 복원하지 못했습니다. 원본은 휴지통에 유지했습니다. 오류가 반복되면 해당 문서의 PDF 데이터 상태를 추가로 점검해야 합니다.');
- }catch(e){
-  console.error(e);
-  alert('문서를 복원하지 못했습니다. 원본은 휴지통에서 삭제하지 말고 유지해 주세요.');
+   const doc={...item,blob};delete doc.trashId;delete doc.deletedAt;delete doc.originalId;delete doc.id;
+   if(Number.isSafeInteger(originalId)&&originalId>0)doc.id=originalId;
+   await addDoc(doc);
+   // 문서 저장 완료 후 휴지통 제거. 실패해도 다음 재시도에서 원본 ID로 중복을 판별한다.
+   await removeTrash(trashId);restored++;
+  }catch(e){failed++;console.error('PDF 복원 단계 실패', {trashId,name:e?.name,message:e?.message,stack:e?.stack});}
  }
+ selectedDocumentTrashIds.clear();await refreshDocumentTrashSettings();if(restored||already)await refreshSavedDocuments();
+ if(failed)alert(`복원 완료 ${restored}건, 이미 복원된 항목 정리 ${already}건, 실패 ${failed}건입니다. 실패한 원본은 휴지통에 유지했습니다. 오류 세부사항은 콘솔 진단 기록에 남겼습니다.`);
+ else if(restored||already)toast(`복원 ${restored}건, 기존 복원 항목 ${already}건을 확인했습니다.`);
+ else alert('복원할 문서가 없습니다.');
 }
 async function permanentlyDeleteSelectedDocumentTrash(){const ids=[...selectedDocumentTrashIds].map(Number).filter(Number.isFinite);if(!ids.length){toast('영구 삭제할 문서를 선택하세요.');return}if(!confirm(`선택한 문서 ${ids.length}건을 영구 삭제할까요? 삭제 후에는 복원할 수 없습니다.`))return;try{const db=await openSavedDocsDb();await new Promise((resolve,reject)=>{const tx=db.transaction('documentTrash','readwrite'),store=tx.objectStore('documentTrash');ids.forEach(id=>store.delete(id));tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error)});selectedDocumentTrashIds.clear();await refreshDocumentTrashSettings();toast(`문서 ${ids.length}건을 영구 삭제했습니다.`)}catch(e){console.error(e);alert('문서를 영구 삭제하지 못했습니다.')}}
 async function emptyDocumentTrash(){const docs=await getDocumentTrashRecords();if(!docs.length){toast('문서 휴지통이 비어 있습니다.');return}if(!confirm(`문서 휴지통의 ${docs.length}건을 모두 영구 삭제할까요? 삭제 후에는 복원할 수 없습니다.`))return;try{const db=await openSavedDocsDb();await new Promise((resolve,reject)=>{const tx=db.transaction('documentTrash','readwrite');tx.objectStore('documentTrash').clear();tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error)});selectedDocumentTrashIds.clear();await refreshDocumentTrashSettings();toast('문서 휴지통을 비웠습니다.')}catch(e){console.error(e);alert('문서 휴지통을 비우지 못했습니다.')}}
