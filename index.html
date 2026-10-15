@@ -857,7 +857,26 @@ async function printConsent(){
 }
 
 let savedDocsDbPromise=null;
-function openSavedDocsDb(){if(savedDocsDbPromise)return savedDocsDbPromise;savedDocsDbPromise=new Promise((resolve,reject)=>{const req=indexedDB.open('meeting-checkbook-documents',2);req.onupgradeneeded=()=>{const db=req.result;if(!db.objectStoreNames.contains('documents')){const st=db.createObjectStore('documents',{keyPath:'id',autoIncrement:true});st.createIndex('date','date');}if(!db.objectStoreNames.contains('documentTrash')){const tr=db.createObjectStore('documentTrash',{keyPath:'trashId',autoIncrement:true});tr.createIndex('deletedAt','deletedAt');}};req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error)});return savedDocsDbPromise}
+function resetSavedDocsDbPromise(){savedDocsDbPromise=null;}
+function openSavedDocsDb(){
+ if(savedDocsDbPromise)return savedDocsDbPromise;
+ const pending=new Promise((resolve,reject)=>{
+  let settled=false;
+  const req=indexedDB.open('meeting-checkbook-documents',2);
+  req.onupgradeneeded=()=>{const db=req.result;if(!db.objectStoreNames.contains('documents')){const st=db.createObjectStore('documents',{keyPath:'id',autoIncrement:true});st.createIndex('date','date');}if(!db.objectStoreNames.contains('documentTrash')){const tr=db.createObjectStore('documentTrash',{keyPath:'trashId',autoIncrement:true});tr.createIndex('deletedAt','deletedAt');}};
+  req.onsuccess=()=>{const db=req.result;settled=true;
+   // iOS may suspend or close an IndexedDB connection while the installed web app is backgrounded.
+   // Never keep a permanently cached promise for a connection that has been closed or invalidated.
+   db.onversionchange=()=>{try{db.close()}catch(_){};if(savedDocsDbPromise===pending)resetSavedDocsDbPromise();};
+   db.onclose=()=>{if(savedDocsDbPromise===pending)resetSavedDocsDbPromise();};
+   resolve(db);
+  };
+  req.onerror=()=>{if(savedDocsDbPromise===pending)resetSavedDocsDbPromise();reject(req.error||new Error('IndexedDB 열기 실패'));};
+  req.onblocked=()=>console.warn('문서 저장소 열기가 다른 연결 때문에 대기 중입니다.');
+ });
+ savedDocsDbPromise=pending;
+ return pending;
+}
 function readBlobAsArrayBuffer(blob){
  return new Promise((resolve,reject)=>{
   try{
@@ -888,13 +907,26 @@ async function inspectPdfBlob(input){
  if(!header.startsWith('%PDF-'))throw new Error('파일 시작 부분이 PDF 형식(%PDF-)과 일치하지 않습니다.');
  return blob.type==='application/pdf'?blob:new Blob([bytes],{type:'application/pdf'});
 }
+async function getUsablePdfBlob(record){
+ let lastError=null;
+ if(record?.pdfBytes){
+  try{return await inspectPdfBlob(new Blob([record.pdfBytes],{type:'application/pdf'}));}catch(e){lastError=e;}
+ }
+ if(record?.blob){
+  try{return await inspectPdfBlob(record.blob);}catch(e){lastError=e;}
+ }
+ throw lastError||new Error('PDF 데이터와 백업 바이트를 찾을 수 없습니다.');
+}
 async function saveDocumentRecord(doc){
  const blob=await inspectPdfBlob(doc?.blob);
+ // Persist raw PDF bytes as a fallback. Some iOS WebKit versions can retain a Blob wrapper
+ // in IndexedDB while later failing to read its backing data after suspension/resume.
+ const pdfBytes=await readBlobAsArrayBuffer(blob);
  const db=await openSavedDocsDb();
  return new Promise((resolve,reject)=>{
   let id=null,requestError=null;
   const tx=db.transaction('documents','readwrite');
-  const req=tx.objectStore('documents').add({...doc,blob,createdAt:new Date().toISOString()});
+  const req=tx.objectStore('documents').add({...doc,blob,pdfBytes,createdAt:new Date().toISOString()});
   req.onsuccess=()=>{id=req.result};
   req.onerror=()=>{requestError=req.error};
   tx.oncomplete=()=>id!==null?resolve(id):reject(requestError||new Error('문서 저장 결과를 확인할 수 없습니다.'));
@@ -920,7 +952,7 @@ async function openSavedDocument(id){
   const db=await openSavedDocsDb();
   const doc=await new Promise((resolve,reject)=>{const r=db.transaction('documents','readonly').objectStore('documents').get(Number(id));r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error)});
   if(!doc)throw new Error('저장된 문서를 찾을 수 없습니다.');
-  const blob=await inspectPdfBlob(doc.blob);
+  const blob=await getUsablePdfBlob(doc);
   if(openSavedDocumentUrl)URL.revokeObjectURL(openSavedDocumentUrl);
   openSavedDocumentRecord={...doc,blob};openSavedDocumentUrl=URL.createObjectURL(blob);
   const frame=document.getElementById('savedDocumentViewerFrame');
@@ -939,9 +971,10 @@ async function moveSavedDocumentsToTrash(ids){
  for(const id of unique){
   const doc=await new Promise((resolve,reject)=>{const tx=db.transaction('documents','readonly'),r=tx.objectStore('documents').get(id);r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error)});
   if(!doc)continue;
-  const blob=await inspectPdfBlob(doc.blob);
+  const blob=await getUsablePdfBlob(doc);
+  const pdfBytes=await readBlobAsArrayBuffer(blob);
   // 먼저 휴지통에 완전한 데이터를 저장하고, 트랜잭션 완료 후에만 원본을 삭제한다.
-  const trashId=await new Promise((resolve,reject)=>{let key=null,err=null;const tx=db.transaction('documentTrash','readwrite'),r=tx.objectStore('documentTrash').add({...doc,blob,originalId:doc.id,deletedAt:new Date().toISOString()});r.onsuccess=()=>key=r.result;r.onerror=()=>err=r.error;tx.oncomplete=()=>key!==null?resolve(key):reject(err||new Error('휴지통 저장 결과를 확인할 수 없습니다.'));tx.onabort=()=>reject(tx.error||err||new Error('휴지통 저장이 취소되었습니다.'));tx.onerror=()=>reject(tx.error||err||new Error('휴지통 저장에 실패했습니다.'))});
+  const trashId=await new Promise((resolve,reject)=>{let key=null,err=null;const tx=db.transaction('documentTrash','readwrite'),r=tx.objectStore('documentTrash').add({...doc,blob,pdfBytes,originalId:doc.id,deletedAt:new Date().toISOString()});r.onsuccess=()=>key=r.result;r.onerror=()=>err=r.error;tx.oncomplete=()=>key!==null?resolve(key):reject(err||new Error('휴지통 저장 결과를 확인할 수 없습니다.'));tx.onabort=()=>reject(tx.error||err||new Error('휴지통 저장이 취소되었습니다.'));tx.onerror=()=>reject(tx.error||err||new Error('휴지통 저장에 실패했습니다.'))});
   try{
    await new Promise((resolve,reject)=>{const tx=db.transaction('documents','readwrite'),r=tx.objectStore('documents').delete(id);r.onerror=()=>reject(r.error);tx.oncomplete=resolve;tx.onabort=()=>reject(tx.error||new Error('원본 정리에 실패했습니다.'));tx.onerror=()=>reject(tx.error||new Error('원본 정리에 실패했습니다.'))});
    moved++;
@@ -1802,23 +1835,24 @@ function toggleDocumentTrashSelection(id,checked){if(checked)selectedDocumentTra
 async function restoreSelectedDocumentTrash(){
  const ids=[...selectedDocumentTrashIds].map(Number).filter(n=>Number.isSafeInteger(n)&&n>0);
  if(!ids.length){toast('복원할 문서를 선택하세요.');return}
- let restored=0,failed=0,already=0;const db=await openSavedDocsDb();const diagnostics=[];
- const read=(store,id)=>new Promise((resolve,reject)=>{let settled=false;const tx=db.transaction(store,'readonly'),r=tx.objectStore(store).get(id);r.onsuccess=()=>{settled=true;resolve(r.result)};r.onerror=()=>reject(r.error||new Error(store+' 읽기 실패'));tx.onabort=()=>{if(!settled)reject(tx.error||new Error(store+' 읽기 취소'))}});
- const addDoc=doc=>new Promise((resolve,reject)=>{let key=null,err=null;const tx=db.transaction('documents','readwrite'),r=tx.objectStore('documents').add(doc);r.onsuccess=()=>key=r.result;r.onerror=()=>{err=r.error};tx.oncomplete=()=>key!==null?resolve(key):reject(err||new Error('문서 저장 결과를 확인할 수 없습니다.'));tx.onabort=()=>reject(tx.error||err||new Error('문서 저장이 취소되었습니다.'));tx.onerror=()=>{err=tx.error||err}});
- const removeTrash=id=>new Promise((resolve,reject)=>{const tx=db.transaction('documentTrash','readwrite'),r=tx.objectStore('documentTrash').delete(id);r.onerror=()=>{};tx.oncomplete=resolve;tx.onabort=()=>reject(tx.error||new Error('휴지통 정리에 실패했습니다.'));tx.onerror=()=>{}});
+ let restored=0,failed=0,already=0;const diagnostics=[];
+ const read=async(store,id)=>{const db=await openSavedDocsDb();return new Promise((resolve,reject)=>{let settled=false;const tx=db.transaction(store,'readonly'),r=tx.objectStore(store).get(id);r.onsuccess=()=>{settled=true;resolve(r.result)};r.onerror=()=>reject(r.error||new Error(store+' 읽기 실패'));tx.onabort=()=>{if(!settled)reject(tx.error||new Error(store+' 읽기 취소'))}})};
+ const addDoc=async doc=>{const db=await openSavedDocsDb();return new Promise((resolve,reject)=>{let key=null,err=null;const tx=db.transaction('documents','readwrite'),r=tx.objectStore('documents').add(doc);r.onsuccess=()=>key=r.result;r.onerror=()=>{err=r.error};tx.oncomplete=()=>key!==null?resolve(key):reject(err||new Error('문서 저장 결과를 확인할 수 없습니다.'));tx.onabort=()=>reject(tx.error||err||new Error('문서 저장이 취소되었습니다.'));tx.onerror=()=>{err=tx.error||err}})};
+ const removeTrash=async id=>{const db=await openSavedDocsDb();return new Promise((resolve,reject)=>{const tx=db.transaction('documentTrash','readwrite'),r=tx.objectStore('documentTrash').delete(id);r.onerror=()=>{};tx.oncomplete=resolve;tx.onabort=()=>reject(tx.error||new Error('휴지통 정리에 실패했습니다.'));tx.onerror=()=>{}})};
  for(const trashId of ids){
   let stage='휴지통 데이터 읽기';let blobInfo={};
   try{
    const item=await read('documentTrash',trashId);if(!item)throw new Error('휴지통에서 문서를 찾을 수 없습니다.');
    blobInfo={blobType: item.blob?.type ?? '(없음)', blobSize: item.blob?.size ?? '(확인 불가)', blobConstructor: item.blob?.constructor?.name ?? typeof item.blob, hasArrayBuffer: typeof item.blob?.arrayBuffer==='function'};
    stage='PDF 데이터 형식 및 헤더 검사';
-   const blob=await inspectPdfBlob(item.blob);
+   const blob=await getUsablePdfBlob(item);
+   const pdfBytes=await readBlobAsArrayBuffer(blob);
    const originalId=Number(item.originalId);
    stage='기존 복원 여부 확인';
    let existing=null;if(Number.isSafeInteger(originalId)&&originalId>0)existing=await read('documents',originalId);
    if(existing){
     stage='기존 PDF 데이터 비교';
-    const existingBlob=await inspectPdfBlob(existing.blob);
+    const existingBlob=await getUsablePdfBlob(existing);
     const [a,b]=await Promise.all([readBlobAsArrayBuffer(existingBlob),readBlobAsArrayBuffer(blob)]);
     const sameSize=existingBlob.size===blob.size;
     const sameHeader=Array.from(new Uint8Array(a,0,Math.min(16,a.byteLength))).join(',')===Array.from(new Uint8Array(b,0,Math.min(16,b.byteLength))).join(',');
@@ -1826,12 +1860,12 @@ async function restoreSelectedDocumentTrash(){
     throw new Error('같은 원본 ID의 문서가 이미 있지만 PDF 데이터가 일치하지 않습니다. 원본을 보존했습니다.');
    }
    stage='문서함에 PDF 저장';
-   const doc={...item,blob};delete doc.trashId;delete doc.deletedAt;delete doc.originalId;delete doc.id;
+   const doc={...item,blob,pdfBytes};delete doc.trashId;delete doc.deletedAt;delete doc.originalId;delete doc.id;
    if(Number.isSafeInteger(originalId)&&originalId>0)doc.id=originalId;
    await addDoc(doc);
    stage='휴지통 원본 정리';
    await removeTrash(trashId);restored++;
-  }catch(e){failed++;const d={trashId,stage,name:e?.name||'Error',message:e?.message||String(e),blobInfo};diagnostics.push(d);console.error('PDF 복원 진단',d,e);}
+  }catch(e){if(['InvalidStateError','NotFoundError','TransactionInactiveError'].includes(e?.name))resetSavedDocsDbPromise();failed++;const d={trashId,stage,name:e?.name||'Error',message:e?.message||String(e),blobInfo};diagnostics.push(d);console.error('PDF 복원 진단',d,e);}
  }
  selectedDocumentTrashIds.clear();await refreshDocumentTrashSettings();if(restored||already)await refreshSavedDocuments();
  if(failed){const detail=diagnostics.map((d,i)=>`${i+1}. 항목 ${d.trashId}\n단계: ${d.stage}\n오류: ${d.name} — ${d.message}\n데이터: ${JSON.stringify(d.blobInfo)}`).join('\n\n');alert(`복원 완료 ${restored}건, 이미 복원된 항목 정리 ${already}건, 실패 ${failed}건입니다. 실패한 원본은 휴지통에 유지했습니다.\n\n[진단 결과]\n${detail}\n\n이 내용을 사진으로 보내 주세요. 문서는 삭제하지 마세요.`);}
