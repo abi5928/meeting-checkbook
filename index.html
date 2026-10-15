@@ -858,19 +858,35 @@ async function printConsent(){
 
 let savedDocsDbPromise=null;
 function openSavedDocsDb(){if(savedDocsDbPromise)return savedDocsDbPromise;savedDocsDbPromise=new Promise((resolve,reject)=>{const req=indexedDB.open('meeting-checkbook-documents',2);req.onupgradeneeded=()=>{const db=req.result;if(!db.objectStoreNames.contains('documents')){const st=db.createObjectStore('documents',{keyPath:'id',autoIncrement:true});st.createIndex('date','date');}if(!db.objectStoreNames.contains('documentTrash')){const tr=db.createObjectStore('documentTrash',{keyPath:'trashId',autoIncrement:true});tr.createIndex('deletedAt','deletedAt');}};req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error)});return savedDocsDbPromise}
+function readBlobAsArrayBuffer(blob){
+ return new Promise((resolve,reject)=>{
+  try{
+   const reader=new FileReader();
+   reader.onload=()=>reader.result instanceof ArrayBuffer?resolve(reader.result):reject(new Error('FileReader가 ArrayBuffer를 반환하지 않았습니다.'));
+   reader.onerror=()=>reject(reader.error||new Error('FileReader 데이터 읽기 실패'));
+   reader.onabort=()=>reject(new Error('FileReader 데이터 읽기가 취소되었습니다.'));
+   reader.readAsArrayBuffer(blob);
+  }catch(e){reject(e)}
+ });
+}
 async function inspectPdfBlob(input){
  if(!input)throw new Error('PDF 데이터가 없습니다.');
  let blob=input;
  if(!(blob instanceof Blob)){
-  if(typeof blob.arrayBuffer==='function')blob=new Blob([await blob.arrayBuffer()],{type:'application/pdf'});
-  else if(input instanceof ArrayBuffer||ArrayBuffer.isView(input))blob=new Blob([input],{type:'application/pdf'});
-  else throw new Error('PDF 데이터 형식을 읽을 수 없습니다.');
+  if(input instanceof ArrayBuffer||ArrayBuffer.isView(input))blob=new Blob([input],{type:'application/pdf'});
+  else if(typeof input.arrayBuffer==='function'){
+   // Blob이 아닌 유사 객체는 arrayBuffer()를 통해 한 번만 읽고 새 Blob으로 정규화한다.
+   const bytes=await input.arrayBuffer();blob=new Blob([bytes],{type:'application/pdf'});
+  }else throw new Error('PDF 데이터 형식을 읽을 수 없습니다.');
  }
- if(blob.size<8)throw new Error('PDF 데이터가 너무 작습니다.');
- const head=new Uint8Array(await blob.slice(0,8).arrayBuffer());
+ if(!Number.isFinite(blob.size)||blob.size<8)throw new Error('PDF 데이터가 너무 작습니다.');
+ // iOS에서 Blob.slice().arrayBuffer()가 NotFoundError를 낼 수 있어 FileReader로 Blob을 읽는다.
+ const bytes=await readBlobAsArrayBuffer(blob);
+ if(bytes.byteLength!==blob.size)throw new Error(`PDF 데이터 길이가 일치하지 않습니다. Blob ${blob.size}바이트, 읽기 ${bytes.byteLength}바이트`);
+ const head=new Uint8Array(bytes,0,8);
  const header=String.fromCharCode(...head);
  if(!header.startsWith('%PDF-'))throw new Error('파일 시작 부분이 PDF 형식(%PDF-)과 일치하지 않습니다.');
- return blob.type==='application/pdf'?blob:new Blob([await blob.arrayBuffer()],{type:'application/pdf'});
+ return blob.type==='application/pdf'?blob:new Blob([bytes],{type:'application/pdf'});
 }
 async function saveDocumentRecord(doc){
  const blob=await inspectPdfBlob(doc?.blob);
@@ -1803,9 +1819,9 @@ async function restoreSelectedDocumentTrash(){
    if(existing){
     stage='기존 PDF 데이터 비교';
     const existingBlob=await inspectPdfBlob(existing.blob);
-    const [a,b]=await Promise.all([existingBlob.slice(0,16).arrayBuffer(),blob.slice(0,16).arrayBuffer()]);
+    const [a,b]=await Promise.all([readBlobAsArrayBuffer(existingBlob),readBlobAsArrayBuffer(blob)]);
     const sameSize=existingBlob.size===blob.size;
-    const sameHeader=Array.from(new Uint8Array(a)).join(',')===Array.from(new Uint8Array(b)).join(',');
+    const sameHeader=Array.from(new Uint8Array(a,0,Math.min(16,a.byteLength))).join(',')===Array.from(new Uint8Array(b,0,Math.min(16,b.byteLength))).join(',');
     if(sameSize&&sameHeader){stage='휴지통 원본 정리';await removeTrash(trashId);already++;continue;}
     throw new Error('같은 원본 ID의 문서가 이미 있지만 PDF 데이터가 일치하지 않습니다. 원본을 보존했습니다.');
    }
