@@ -302,6 +302,35 @@ nav.viewport-bottom-nav{position:fixed!important;left:50%!important;right:auto!i
 #scheduleModal .schedule-sheet>.close{position:relative!important;z-index:5!important;flex:0 0 auto!important;margin-top:10px!important;margin-bottom:env(safe-area-inset-bottom)!important}
 #scheduleModal .schedule-editor{padding-bottom:28px!important;margin-bottom:12px!important}
 
+
+/* v47: canonical schedule modal layout; replaces conflicting earlier schedule overrides */
+#scheduleModal{
+ z-index:12000!important;align-items:center!important;justify-content:center!important;
+ padding:max(12px,env(safe-area-inset-top)) 8px calc(12px + env(safe-area-inset-bottom))!important;
+ overflow:hidden!important;box-sizing:border-box;
+}
+#scheduleModal .schedule-sheet{
+ box-sizing:border-box!important;width:min(560px,100%)!important;
+ height:calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 24px)!important;
+ max-height:calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 24px)!important;
+ min-height:0!important;margin:0 auto!important;padding:14px 14px 10px!important;
+ display:flex!important;flex-direction:column!important;overflow:hidden!important;
+ border-radius:20px!important;position:relative!important;
+}
+#scheduleModal .schedule-sheet>h2{flex:0 0 auto!important;margin:0 0 8px!important;line-height:1.2!important}
+#scheduleModal #scheduleBody{
+ display:block!important;flex:1 1 0!important;min-height:0!important;height:auto!important;
+ overflow-x:hidden!important;overflow-y:auto!important;overscroll-behavior:contain!important;
+ -webkit-overflow-scrolling:touch!important;padding:0 1px 24px!important;
+}
+#scheduleModal .schedule-sheet>.close{
+ position:static!important;display:block!important;flex:0 0 auto!important;width:100%!important;
+ min-height:48px!important;margin:8px 0 0!important;padding:12px!important;
+ box-shadow:0 -1px 0 #e6eaf1!important;background:#eef1f5!important;z-index:2!important;
+}
+#scheduleModal .schedule-editor{margin-bottom:10px!important;padding-bottom:14px!important}
+#scheduleModal .schedule-editor>button.primary{position:static!important;display:block!important;margin:10px 0 4px!important;min-height:48px!important}
+
 </style>
 </head>
 <body>
@@ -985,11 +1014,6 @@ function renderPhotoGallery(){
  body.innerHTML=cards.length?`<div class="photo-grid">${cards.join('')}</div>`:'<div class="muted">아직 사진이 없습니다. 직접 촬영하거나 체크 메뉴에서 사진을 첨부하세요.</div>';updatePhotoSelectionCount();
 }
 function openPhotoTrash(){photoGalleryMode='trash';selectedPhotoRecordKeys.clear();if(!Array.isArray(state.photoTrash))state.photoTrash=[];renderPhotoGallery()}
-function deleteSelectedPhotoRecords(){const items=collectSelectedPhotoRecords();if(!items.length){alert('먼저 휴지통으로 이동할 사진을 선택해 주세요.');return}if(!confirm(`선택한 사진 ${items.length}장을 휴지통으로 이동할까요? 휴지통에서 복원할 수 있습니다.`))return;if(!Array.isArray(state.photoTrash))state.photoTrash=[];
- const grouped={};items.filter(x=>x.source==='check').forEach(x=>{const k=x.rid+'|'+x.pid;(grouped[k]||(grouped[k]=[])).push(x)});
- Object.entries(grouped).forEach(([key,arr])=>{const [rid,pid]=key.split('|');const r=(state.records||[]).find(x=>String(x.id)===rid);if(!r)return;const inf=parseCheck(r.checks?.[pid]);arr.sort((a,b)=>b.idx-a.idx).forEach(x=>{const photo=inf.photos?.[x.idx];if(!photo)return;const person=(r.people||[]).find(p=>String(p.id)===String(pid))||(state.people||[]).find(p=>String(p.id)===String(pid));state.photoTrash.push({id:'pt_'+Date.now()+'_'+Math.random().toString(36).slice(2,8),source:'check',rid,pid,photo:JSON.parse(JSON.stringify(photo)),name:photoDisplayName(photo,person),date:r.date||'기록일 미상',deletedAt:new Date().toISOString()});inf.photos.splice(x.idx,1)});r.checks[pid]=inf});
- items.filter(x=>x.source==='direct').forEach(x=>{const idx=(state.photoLibrary||[]).findIndex(ph=>String(ph.id)===String(x.photoId));if(idx<0)return;const ph=state.photoLibrary.splice(idx,1)[0];state.photoTrash.push({id:'pt_'+Date.now()+'_'+Math.random().toString(36).slice(2,8),source:'direct',photo:JSON.parse(JSON.stringify(ph)),name:ph.name||'이름 미입력',date:ph.date||'촬영일 미상',deletedAt:new Date().toISOString()})});
- selectedPhotoRecordKeys.clear();save();renderPhotoGallery();toast(items.length+'장 사진을 휴지통으로 이동했습니다.')}
 function restorePhotoTrash(id){const idx=(state.photoTrash||[]).findIndex(x=>String(x.id)===String(id));if(idx<0)return;const item=state.photoTrash[idx];if(item.source==='check'){const r=(state.records||[]).find(x=>String(x.id)===String(item.rid));if(r){const inf=parseCheck(r.checks?.[item.pid]);if(!Array.isArray(inf.photos))inf.photos=[];inf.photos.push(item.photo);r.checks[item.pid]=inf}else{if(!Array.isArray(state.photoLibrary))state.photoLibrary=[];state.photoLibrary.unshift({...item.photo,id:'restored_'+Date.now(),name:item.name||item.photo?.name||'',date:item.date||item.photo?.date||new Date().toISOString().slice(0,10),source:'direct'})}}else{if(!Array.isArray(state.photoLibrary))state.photoLibrary=[];state.photoLibrary.unshift(item.photo)}state.photoTrash.splice(idx,1);save();renderPhotoGallery();toast('사진을 복원했습니다.')}
 function permanentlyDeletePhotoTrash(id){if(!confirm('이 사진을 영구 삭제할까요? 삭제 후에는 복원할 수 없습니다.'))return;state.photoTrash=(state.photoTrash||[]).filter(x=>String(x.id)!==String(id));save();renderPhotoGallery();toast('사진을 영구 삭제했습니다.')}
 function emptyPhotoTrash(){const n=(state.photoTrash||[]).length;if(!n){toast('사진 휴지통이 비어 있습니다.');return}if(!confirm(`휴지통의 사진 ${n}장을 영구 삭제할까요? 복원할 수 없습니다.`))return;state.photoTrash=[];save();renderPhotoGallery();toast('사진 휴지통을 비웠습니다.')}
@@ -1027,7 +1051,31 @@ function collectSelectedPhotoRecords(){const result=[];(state.records||[]).forEa
 function updatePhotoSelectionCount(){const footer=document.querySelector('.photo-gallery-footer');if(!footer)return;let badge=footer.querySelector('.photo-selection-count');if(!badge){badge=document.createElement('div');badge.className='photo-selection-count';badge.style.gridColumn='1 / -1';footer.prepend(badge)}badge.textContent=selectedPhotoRecordKeys.size?`선택 ${selectedPhotoRecordKeys.size}장`:'';}
 function photoRecordCanvas(item){return new Promise((resolve,reject)=>{const img=new Image();img.onload=()=>{const maxW=1200,maxH=1500,pad=44,headerH=190,footerH=78,scale=Math.min(1,(maxW-pad*2)/img.width,(maxH-headerH-footerH-pad*2)/img.height);const iw=Math.max(1,Math.round(img.width*scale)),ih=Math.max(1,Math.round(img.height*scale)),canvas=document.createElement('canvas');canvas.width=maxW;canvas.height=headerH+ih+footerH;const c=canvas.getContext('2d');c.fillStyle='#f3f5f9';c.fillRect(0,0,canvas.width,canvas.height);c.fillStyle='#fff';c.fillRect(18,18,canvas.width-36,canvas.height-36);c.fillStyle='#2563eb';c.font='bold 26px sans-serif';c.fillText('방문 체크북 · 사진 기록',pad,68);c.fillStyle='#172033';c.font='bold 46px sans-serif';c.fillText(String(item.name).slice(0,24),pad,125);c.fillStyle='#59677c';c.font='28px sans-serif';c.fillText('기록일: '+String(item.date),pad,169);const top=headerH;c.drawImage(img,(canvas.width-iw)/2,top,iw,ih);c.fillStyle='#59677c';c.font='22px sans-serif';c.fillText('파일명: '+String(item.photo.name||item.photo.fileName||'사진').slice(0,48),pad,top+ih+46);resolve(canvas)};img.onerror=()=>reject(new Error('사진을 불러오지 못했습니다.'));img.src=item.photo.data})}
 async function exportSelectedPhotoRecords(){const items=collectSelectedPhotoRecords();if(!items.length){alert('먼저 내보낼 사진을 선택해 주세요.');return}try{const files=[];for(let i=0;i<items.length;i++){const item=items[i],canvas=await photoRecordCanvas(item);const blob=await new Promise(resolve=>canvas.toBlob(resolve,'image/jpeg',0.9));if(!blob)throw new Error('내보내기용 이미지를 만들지 못했습니다.');const safe=String(item.name||'대상자').replace(/[^\w가-힣-]/g,'_');files.push(new File([blob],`사진기록_${safe}_${item.date}_${i+1}.jpg`,{type:'image/jpeg'}))}if(navigator.share&&navigator.canShare&&navigator.canShare({files})){await navigator.share({files,title:'방문 체크북 사진 기록',text:'대상자 이름과 기록일이 포함된 사진 기록입니다.'});toast(items.length+'장 사진 기록을 공유했습니다.')}else if(items.length===1){const url=URL.createObjectURL(files[0]),a=document.createElement('a');a.href=url;a.download=files[0].name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1500);toast('사진 기록 이미지를 다운로드했습니다.')}else{alert('이 브라우저에서는 여러 파일 공유를 지원하지 않습니다. 사진을 한 장씩 선택해 내보내 주세요.');return}selectedPhotoRecordKeys.clear();openPhotoGallery()}catch(err){if(err?.name==='AbortError')return;console.error(err);alert('사진 공유를 시작하지 못했습니다. iPhone에서는 Safari에서 다시 시도해 주세요.')}}
-function deleteSelectedPhotoRecords(){const items=collectSelectedPhotoRecords();if(!items.length){alert('먼저 삭제할 사진을 선택해 주세요.');return}if(!confirm(`선택한 사진 ${items.length}장을 삭제할까요? 삭제한 사진은 복구할 수 없습니다.`))return;const standaloneIds=new Set(items.filter(x=>x.source==='direct').map(x=>x.photoId));if(standaloneIds.size)state.photoLibrary=(state.photoLibrary||[]).filter(ph=>!standaloneIds.has(String(ph.id)));const byRecord={};items.filter(x=>x.source==='check').forEach(x=>{const k=x.rid+'|'+x.pid;(byRecord[k]||(byRecord[k]=[])).push(x.idx)});Object.entries(byRecord).forEach(([key,indexes])=>{const [rid,pid]=key.split('|');const r=(state.records||[]).find(x=>String(x.id)===rid);if(!r)return;const inf=parseCheck(r.checks?.[pid]);indexes.sort((a,b)=>b-a).forEach(idx=>inf.photos.splice(idx,1));r.checks[pid]=inf});selectedPhotoRecordKeys.clear();save();openPhotoGallery();toast(items.length+'장 사진을 삭제했습니다.')}
+function deleteSelectedPhotoRecords(){
+ const items=collectSelectedPhotoRecords();
+ if(!items.length){alert('먼저 삭제할 사진을 선택해 주세요.');return}
+ if(!confirm(`선택한 사진 ${items.length}장을 휴지통으로 이동할까요? 설정의 휴지통에서 복원할 수 있습니다.`))return;
+ if(!Array.isArray(state.photoTrash))state.photoTrash=[];
+ const grouped={};
+ items.filter(x=>x.source==='check').forEach(x=>{const k=x.rid+'|'+x.pid;(grouped[k]||(grouped[k]=[])).push(x)});
+ Object.entries(grouped).forEach(([key,arr])=>{
+  const [rid,pid]=key.split('|');const r=(state.records||[]).find(x=>String(x.id)===rid);if(!r)return;
+  const inf=parseCheck(r.checks?.[pid]);
+  arr.sort((a,b)=>b.idx-a.idx).forEach(x=>{
+   const photo=inf.photos?.[x.idx];if(!photo)return;
+   const person=(r.people||[]).find(p=>String(p.id)===String(pid))||(state.people||[]).find(p=>String(p.id)===String(pid));
+   state.photoTrash.push({id:'pt_'+Date.now()+'_'+Math.random().toString(36).slice(2,8),source:'check',rid,pid,photo:JSON.parse(JSON.stringify(photo)),name:photoDisplayName(photo,person),date:r.date||'기록일 미상',deletedAt:new Date().toISOString()});
+   inf.photos.splice(x.idx,1);
+  });
+  r.checks[pid]=inf;
+ });
+ items.filter(x=>x.source==='direct').forEach(x=>{
+  const idx=(state.photoLibrary||[]).findIndex(ph=>String(ph.id)===String(x.photoId));if(idx<0)return;
+  const ph=state.photoLibrary.splice(idx,1)[0];
+  state.photoTrash.push({id:'pt_'+Date.now()+'_'+Math.random().toString(36).slice(2,8),source:'direct',photo:JSON.parse(JSON.stringify(ph)),name:ph.name||'이름 미입력',date:ph.date||'촬영일 미상',deletedAt:new Date().toISOString()});
+ });
+ selectedPhotoRecordKeys.clear();save();renderPhotoGallery();toast(items.length+'장 사진을 휴지통으로 이동했습니다.');
+}
 function closePhotoGallery(){document.getElementById('photoGalleryModal').classList.remove('show')}
 function deleteRecordPhoto(rid,pid,idx){const r=state.records.find(x=>String(x.id)===String(rid));if(!r)return;const inf=parseCheck(r.checks?.[pid]);if(!confirm('이 사진을 삭제할까요?'))return;inf.photos.splice(idx,1);r.checks[pid]=inf;save();openPhotoGallery()}
 
@@ -1670,10 +1718,18 @@ function openManageDetail(type){
  else if(type==='share'){t.textContent='앱 공유';h=`<p class="muted">대상자 자료는 공유하지 않고 방문 체크북 앱 주소만 공유합니다.</p><button class="primary" style="width:100%" onclick="shareApp();closeManageDetail()">📤 앱 주소 공유</button>`}
  else if(type==='help'){t.textContent='사용 안내 및 개인정보 보호';h=`<div class="help-body"><b>① 새로운 체크북</b><br>홈에서 업무 주제를 선택하고 명단을 불러오거나 직접 추가합니다.<br><br><b>② 체크와 메모</b><br>체크 메뉴에서 대상자를 검색하고 전화, 체크, 메모를 사용합니다. ＋ 버튼에서 수령증 작성이나 사진 첨부를 선택할 수 있습니다.<br><br><b>③ 스케줄</b><br>달력에서 날짜를 선택하고 방문 대상자와 간단한 메모를 저장합니다.<br><br><b>④ 개인정보 보호</b><br>이름, 전화번호, 주소, 방문 기록과 상담 메모는 업무 목적으로만 사용하세요. Excel이나 사진을 내보내거나 공유할 때는 기관의 승인된 절차를 따르세요.<br><br><b>⑤ 기록과 저장</b><br>기록은 기본적으로 이 기기의 브라우저 저장공간에 보관됩니다. 브라우저 데이터 삭제나 기기 변경 시 사라질 수 있으므로 기관의 승인된 절차에 따라 필요한 자료를 보관하세요.</div>`}
  else if(type==='data'){t.textContent='데이터 관리';h=`<div id="storageStatsPanel"><p class="muted">저장 현황을 계산하고 있습니다.</p></div><p class="muted" style="margin:10px 0 8px">데이터 가져오기</p><div class="document-actions storage-actions" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px"><button onclick="document.getElementById('dataExcelFile')?.click();closeManageDetail()">📥 명단 가져오기</button><button onclick="document.getElementById('restoreBackupFile')?.click()">📂 전체 데이터 복원</button></div><p class="muted" style="margin:12px 0 8px">데이터 내보내기</p><div class="document-actions storage-actions" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px"><button onclick="exportCurrentRecord();closeManageDetail()">📤 기록 내보내기</button><button class="primary" onclick="exportAppBackup()">📦 전체 데이터 백업</button><button onclick="downloadPreRestoreSafetyCopy()">🛡️ 복원 전 안전 사본</button></div><input id="dataExcelFile" type="file" accept=".xlsm,.xlsx,.xls" style="display:none" onchange="importExcel('dataExcelFile')"><input id="restoreBackupFile" type="file" accept=".json,application/json" style="display:none" onchange="restoreAppBackup(this)"><p class="muted" style="margin-top:10px">전체 백업에는 대상자 개인정보, 체크 기록, 메모 및 사진이 포함될 수 있습니다. 복원하면 현재 앱 데이터가 백업 파일의 데이터로 교체됩니다. 복원 전 현재 데이터도 백업해 주세요. 사진을 확인·삭제·내보내려면 홈 화면의 사진 메뉴를 이용하세요.</p>`;setTimeout(refreshStorageStats,0)}
- else if(type==='trash'){const tr=Array.isArray(state.trash)?state.trash:[];const list=!tr.length?'<div class="muted">휴지통이 비어 있습니다.</div>':tr.slice().reverse().map(r=>`<div class="record"><b>${esc(r.title)}</b><div class="muted">${esc(r.date)}</div><div class="actions" style="margin-top:8px"><button class="small" onclick="restoreTrash('${String(r.id).replace(/'/g,"\\'")}');closeManageDetail()">↩ 복원</button><button class="small danger" onclick="permanentDeleteTrash('${String(r.id).replace(/'/g,"\\'")}');closeManageDetail()">영구 삭제</button></div></div>`).join('');t.textContent='휴지통';h=`<p class="muted">삭제된 기록은 휴지통에 보관됩니다.</p>${list}${tr.length?'<button style="width:100%;margin-top:10px" onclick="emptyTrash();closeManageDetail()">휴지통 비우기</button>':''}`}
+ else if(type==='trash'){
+  const tr=Array.isArray(state.trash)?state.trash:[];
+  const list=!tr.length?'<div class="muted">삭제된 기록이 없습니다.</div>':tr.slice().reverse().map(r=>`<div class="record"><b>${esc(r.title)}</b><div class="muted">${esc(r.date)}</div><div class="actions" style="margin-top:8px"><button class="small" onclick="restoreTrash('${String(r.id).replace(/'/g,"\\'")}');closeManageDetail()">↩ 복원</button><button class="small danger" onclick="permanentDeleteTrash('${String(r.id).replace(/'/g,"\\'")}');closeManageDetail()">영구 삭제</button></div></div>`).join('');
+  const pt=Array.isArray(state.photoTrash)?state.photoTrash:[];
+  const photoList=!pt.length?'<div class="muted">휴지통에 있는 사진이 없습니다.</div>':pt.slice().reverse().map(item=>`<div class="record" style="display:flex;gap:10px;align-items:center"><img src="${item.photo?.data||''}" alt="삭제된 사진" style="width:64px;height:64px;object-fit:cover;border-radius:8px"><div style="flex:1;min-width:0"><b>${esc(item.name||item.photo?.name||'이름 미입력')}</b><div class="muted">${esc(item.date||'날짜 미상')}</div><div class="actions" style="margin-top:6px"><button class="small" onclick="restorePhotoTrashFromSettings('${escAttr(item.id)}')">↩ 복원</button><button class="small danger" onclick="permanentlyDeletePhotoTrashFromSettings('${escAttr(item.id)}')">영구 삭제</button></div></div></div>`).join('');
+  t.textContent='휴지통';h=`<h3 style="margin:8px 0">삭제된 기록</h3><p class="muted">삭제된 체크북 기록은 여기에서 복원할 수 있습니다.</p>${list}${tr.length?'<button style="width:100%;margin-top:10px" onclick="emptyTrash();openManageDetail(\'trash\')">기록 휴지통 비우기</button>':''}<hr style="border:0;border-top:1px solid #e5eaf1;margin:18px 0"><h3 style="margin:8px 0">삭제된 사진</h3><p class="muted">사진 메뉴에서 삭제한 사진은 이곳에서 복원하거나 영구 삭제할 수 있습니다.</p>${photoList}${pt.length?'<button style="width:100%;margin-top:10px" onclick="emptyPhotoTrash();openManageDetail(\'trash\')">사진 휴지통 비우기</button>':''}`
+ }
  else if(type==='reset'){t.textContent='초기화';h=`<p class="muted">모든 명단과 기록, 휴지통을 포함한 앱 데이터를 삭제합니다.</p><div class="warn">삭제한 데이터는 되돌릴 수 없습니다.</div><button class="danger" style="width:100%" onclick="resetAll();closeManageDetail()">모든 데이터 초기화</button>`}
  b.innerHTML=h;m.classList.add('show');
 }
+function restorePhotoTrashFromSettings(id){restorePhotoTrash(id);openManageDetail('trash')}
+function permanentlyDeletePhotoTrashFromSettings(id){permanentlyDeletePhotoTrash(id);openManageDetail('trash')}
 function closeManageDetail(){document.getElementById('manageDetailModal')?.classList.remove('show')}
 function renderManage(){main.innerHTML=`<div class="manage-screen"><div class="manage-topbar"><button class="manage-back" onclick="navigateTab('home')" aria-label="뒤로">‹</button><div class="manage-heading">설정</div></div><div class="manage-list">
 <button class="manage-item" onclick="openManageDetail('lock')"><span class="manage-item-icon orange">${manageIcon('lock')}</span><span class="manage-item-copy"><strong>앱 잠금</strong><span>${security.enabled?'비밀번호 설정 · 현재 사용 중':'비밀번호 설정'}</span></span><span class="manage-arrow">›</span></button>
