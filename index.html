@@ -1786,31 +1786,39 @@ function toggleDocumentTrashSelection(id,checked){if(checked)selectedDocumentTra
 async function restoreSelectedDocumentTrash(){
  const ids=[...selectedDocumentTrashIds].map(Number).filter(n=>Number.isSafeInteger(n)&&n>0);
  if(!ids.length){toast('복원할 문서를 선택하세요.');return}
- let restored=0,failed=0,already=0;const db=await openSavedDocsDb();
- const read=(store,id)=>new Promise((resolve,reject)=>{const tx=db.transaction(store,'readonly'),r=tx.objectStore(store).get(id);r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error);tx.onabort=()=>reject(tx.error||new Error('데이터를 읽지 못했습니다.'))});
- const addDoc=doc=>new Promise((resolve,reject)=>{let key=null,err=null;const tx=db.transaction('documents','readwrite'),r=tx.objectStore('documents').add(doc);r.onsuccess=()=>key=r.result;r.onerror=()=>err=r.error;tx.oncomplete=()=>key!==null?resolve(key):reject(err||new Error('문서 저장 결과를 확인할 수 없습니다.'));tx.onabort=()=>reject(tx.error||err||new Error('문서 저장이 취소되었습니다.'));tx.onerror=()=>reject(tx.error||err||new Error('문서 저장에 실패했습니다.'))});
- const removeTrash=id=>new Promise((resolve,reject)=>{const tx=db.transaction('documentTrash','readwrite'),r=tx.objectStore('documentTrash').delete(id);r.onerror=()=>reject(r.error);tx.oncomplete=resolve;tx.onabort=()=>reject(tx.error||new Error('휴지통 정리에 실패했습니다.'));tx.onerror=()=>reject(tx.error||new Error('휴지통 정리에 실패했습니다.'))});
+ let restored=0,failed=0,already=0;const db=await openSavedDocsDb();const diagnostics=[];
+ const read=(store,id)=>new Promise((resolve,reject)=>{let settled=false;const tx=db.transaction(store,'readonly'),r=tx.objectStore(store).get(id);r.onsuccess=()=>{settled=true;resolve(r.result)};r.onerror=()=>reject(r.error||new Error(store+' 읽기 실패'));tx.onabort=()=>{if(!settled)reject(tx.error||new Error(store+' 읽기 취소'))}});
+ const addDoc=doc=>new Promise((resolve,reject)=>{let key=null,err=null;const tx=db.transaction('documents','readwrite'),r=tx.objectStore('documents').add(doc);r.onsuccess=()=>key=r.result;r.onerror=()=>{err=r.error};tx.oncomplete=()=>key!==null?resolve(key):reject(err||new Error('문서 저장 결과를 확인할 수 없습니다.'));tx.onabort=()=>reject(tx.error||err||new Error('문서 저장이 취소되었습니다.'));tx.onerror=()=>{err=tx.error||err}});
+ const removeTrash=id=>new Promise((resolve,reject)=>{const tx=db.transaction('documentTrash','readwrite'),r=tx.objectStore('documentTrash').delete(id);r.onerror=()=>{};tx.oncomplete=resolve;tx.onabort=()=>reject(tx.error||new Error('휴지통 정리에 실패했습니다.'));tx.onerror=()=>{}});
  for(const trashId of ids){
+  let stage='휴지통 데이터 읽기';let blobInfo={};
   try{
    const item=await read('documentTrash',trashId);if(!item)throw new Error('휴지통에서 문서를 찾을 수 없습니다.');
+   blobInfo={blobType: item.blob?.type ?? '(없음)', blobSize: item.blob?.size ?? '(확인 불가)', blobConstructor: item.blob?.constructor?.name ?? typeof item.blob, hasArrayBuffer: typeof item.blob?.arrayBuffer==='function'};
+   stage='PDF 데이터 형식 및 헤더 검사';
    const blob=await inspectPdfBlob(item.blob);
    const originalId=Number(item.originalId);
+   stage='기존 복원 여부 확인';
    let existing=null;if(Number.isSafeInteger(originalId)&&originalId>0)existing=await read('documents',originalId);
    if(existing){
-    // 이전 시도에서 문서 저장은 성공했으나 휴지통 정리만 실패한 경우 중복 추가하지 않는다.
+    stage='기존 PDF 데이터 비교';
     const existingBlob=await inspectPdfBlob(existing.blob);
-    if(existingBlob.size===blob.size){await removeTrash(trashId);already++;continue;}
-    throw new Error('같은 원본 ID의 문서가 이미 있지만 데이터 크기가 다릅니다. 중복 방지를 위해 원본을 유지했습니다.');
+    const [a,b]=await Promise.all([existingBlob.slice(0,16).arrayBuffer(),blob.slice(0,16).arrayBuffer()]);
+    const sameSize=existingBlob.size===blob.size;
+    const sameHeader=Array.from(new Uint8Array(a)).join(',')===Array.from(new Uint8Array(b)).join(',');
+    if(sameSize&&sameHeader){stage='휴지통 원본 정리';await removeTrash(trashId);already++;continue;}
+    throw new Error('같은 원본 ID의 문서가 이미 있지만 PDF 데이터가 일치하지 않습니다. 원본을 보존했습니다.');
    }
+   stage='문서함에 PDF 저장';
    const doc={...item,blob};delete doc.trashId;delete doc.deletedAt;delete doc.originalId;delete doc.id;
    if(Number.isSafeInteger(originalId)&&originalId>0)doc.id=originalId;
    await addDoc(doc);
-   // 문서 저장 완료 후 휴지통 제거. 실패해도 다음 재시도에서 원본 ID로 중복을 판별한다.
+   stage='휴지통 원본 정리';
    await removeTrash(trashId);restored++;
-  }catch(e){failed++;console.error('PDF 복원 단계 실패', {trashId,name:e?.name,message:e?.message,stack:e?.stack});}
+  }catch(e){failed++;const d={trashId,stage,name:e?.name||'Error',message:e?.message||String(e),blobInfo};diagnostics.push(d);console.error('PDF 복원 진단',d,e);}
  }
  selectedDocumentTrashIds.clear();await refreshDocumentTrashSettings();if(restored||already)await refreshSavedDocuments();
- if(failed)alert(`복원 완료 ${restored}건, 이미 복원된 항목 정리 ${already}건, 실패 ${failed}건입니다. 실패한 원본은 휴지통에 유지했습니다. 오류 세부사항은 콘솔 진단 기록에 남겼습니다.`);
+ if(failed){const detail=diagnostics.map((d,i)=>`${i+1}. 항목 ${d.trashId}\n단계: ${d.stage}\n오류: ${d.name} — ${d.message}\n데이터: ${JSON.stringify(d.blobInfo)}`).join('\n\n');alert(`복원 완료 ${restored}건, 이미 복원된 항목 정리 ${already}건, 실패 ${failed}건입니다. 실패한 원본은 휴지통에 유지했습니다.\n\n[진단 결과]\n${detail}\n\n이 내용을 사진으로 보내 주세요. 문서는 삭제하지 마세요.`);}
  else if(restored||already)toast(`복원 ${restored}건, 기존 복원 항목 ${already}건을 확인했습니다.`);
  else alert('복원할 문서가 없습니다.');
 }
